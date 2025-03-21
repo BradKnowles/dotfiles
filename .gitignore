@@ -1,0 +1,21 @@
+## This .gitignore is non-standard, it is an allow list.
+## Files must be explicitly added as exclusions to be committed.
+
+# Ignore everything in current directory and all subdirectories
+**/*
+
+# Allow subdirectories so they can be traversed
+!*/
+
+# Allow the project configuration files
+!.gitignore
+!UNLICENSE
+!README.md
+!.editorconfig
+!.vscode/settings.json
+
+# Allow chezmoi configuration files
+!.chezmoiignore
+
+# # Allow template files anywhere
+!*.tmpl
