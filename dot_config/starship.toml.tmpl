@@ -12,12 +12,20 @@
 #	</auto-generated>
 #-------------------------------------------------------------------------------
 
-. "$PSScriptRoot/Profile/PowerShellConfiguration.ps1"
+[aws.region_aliases]
+us-east-1 = "Virginia"
+us-east-2 = "Ohio"
 
-. "$PSScriptRoot/Profile/Aliases.ps1"
+[battery]
+disabled = false
 
-. "$PSScriptRoot/Profile/ShellCompletions.ps1"
+[directory]
+fish_style_pwd_dir_length = 1
+truncation_length = 1
 
+[dotnet]
+detect_extensions = ['csproj', 'fsproj', 'xproj', 'sln']
 
-
-Invoke-Expression (&starship init powershell)
+[time]
+disabled = false
+format = '🕙[ $time ]($style)'

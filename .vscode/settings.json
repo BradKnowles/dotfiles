@@ -1,7 +1,8 @@
 {
 	"files.associations": {
 		"*.yaml.tmpl": "yaml",
-		"*.ps1.tmpl": "powershell"
+		"*.ps1.tmpl": "powershell",
+		"*.toml.tmpl": "toml"
 	},
 	"conventionalCommits.scopes": [
 		"PowerShell"
