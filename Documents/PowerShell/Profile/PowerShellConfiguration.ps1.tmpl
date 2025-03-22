@@ -26,3 +26,9 @@ $PSReadLineOptions = @{
     }
 }
 Set-PSReadLineOption @PSReadLineOptions
+
+$PSReadLineKeyHandler = @{
+	Chord = @("Tab")
+	Function = "MenuComplete"
+}
+Set-PSReadLineKeyHandler @PSReadLineKeyHandler
