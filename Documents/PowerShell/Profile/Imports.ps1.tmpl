@@ -12,15 +12,4 @@
 #	</auto-generated>
 #-------------------------------------------------------------------------------
 
-. "$PSScriptRoot/Profile/Imports.ps1"
-
-. "$PSScriptRoot/Profile/PowerShellConfiguration.ps1"
-
-. "$PSScriptRoot/Profile/Aliases.ps1"
-
-. "$PSScriptRoot/Profile/ShellCompletions.ps1"
-
-
-
-Invoke-Expression (&starship init powershell)
-Invoke-Expression (& { (zoxide init powershell | Out-String) })
+Import-Module -Name Terminal-Icons
