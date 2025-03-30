@@ -5,6 +5,7 @@
 		"*.toml.tmpl": "toml"
 	},
 	"conventionalCommits.scopes": [
-		"PowerShell"
+		"PowerShell",
+		"AWS"
 	],
 }

@@ -14,9 +14,13 @@
 
 . "$PSScriptRoot/Profile/Imports.ps1"
 
+. "$PSScriptRoot/Profile/ProfileFunctions.ps1"
+
 . "$PSScriptRoot/Profile/PowerShellConfiguration.ps1"
 
 . "$PSScriptRoot/Profile/Aliases.ps1"
+
+{{ if lookPath "aws" }}. "$PSScriptRoot/Profile/Aws.ps1"{{ end }}
 
 . "$PSScriptRoot/Profile/ShellCompletions.ps1"
 

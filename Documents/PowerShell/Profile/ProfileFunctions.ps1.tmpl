@@ -12,16 +12,35 @@
 #	</auto-generated>
 #-------------------------------------------------------------------------------
 
-[battery]
-disabled = false
+Function Format-ResultText() {
+	[CmdletBinding()]
+	[Alias("frt")]
+	Param(
+		[string]$Text
+	)
 
-[directory]
-fish_style_pwd_dir_length = 1
-truncation_length = 1
+	# Actually Dark Yellow
+	"$($PSStyle.Foreground.Yellow)$Text$($PSStyle.Reset)"
+}
 
-[dotnet]
-detect_extensions = ['csproj', 'fsproj', 'xproj', 'sln']
+Function Format-Variable() {
+	[CmdletBinding()]
+	[Alias("fvr")]
+	Param(
+		[string]$Text
+	)
 
-[time]
-disabled = false
-format = '🕙[ $time ]($style)'
+	# Actually Cyan
+	"$($PSStyle.Foreground.BrightCyan)$Text$($PSStyle.Reset)"
+}
+
+Function Format-Value() {
+	[CmdletBinding()]
+	[Alias("fvl")]
+	Param(
+		[string]$Text
+	)
+
+	# Actually Blue
+	"$($PSStyle.Foreground.BrightBlue)$Text$($PSStyle.Reset)"
+}
