@@ -6,6 +6,7 @@
 	},
 	"conventionalCommits.scopes": [
 		"PowerShell",
-		"AWS"
+		"AWS",
+		"Chezmoi"
 	],
 }
