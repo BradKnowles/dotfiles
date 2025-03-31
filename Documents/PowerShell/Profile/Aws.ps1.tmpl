@@ -4,14 +4,26 @@ Function Set-AWSProfile() {
 	[Alias("sap")]
 	Param(
 		[Parameter(Mandatory=$true)]
-		$Profile
+		$ProfileName
 	)
 
-	$previousProfile = $Env:AWS_PROFILE ?? "empty"
-	$Env:AWS_PROFILE = $Profile
-	Set-AWSCredential -ProfileName $Profile -Scope Global
+	$PreviousProfile = $Env:AWS_PROFILE ?? "empty"
 
-	Write-host "$(frt('Updated')) $(fvr('AWS_PROFILE')) $(frt('from')) $(fvl($previousProfile)) $(frt('to')) $(fvl($Profile))"
+	# Set profile for CLI
+	$Env:AWS_PROFILE = $ProfileName
+
+	# If profile doesn't exist in .aws directory, create a placeholder
+	if ($null -eq $(Get-AWSCredentialFileContents)[$ProfileName]) {
+		New-AWSProfile -ProfileName $ProfileName
+	}
+
+	Write-Host "$(frt('Updated')) $(fvr('AWS_PROFILE')) $(frt('from')) $(fvl($PreviousProfile)) $(frt('to')) $(fvl($ProfileName))"
+
+	# Set profile for PowerShell Tools
+	Set-AWSCredential -ProfileName $ProfileName -Scope Global
+
+	#Set region for CLI and PowerShell Tools
+	Set-AWSRegion -Region $(Get-AWSRegionLocal)
 }
 
 Function Set-AWSRegion() {
@@ -19,14 +31,20 @@ Function Set-AWSRegion() {
 	[Alias("sar")]
 	Param(
 		[Parameter(Mandatory=$true)]
+		[ArgumentCompletions("af-south-1", "ap-east-1", "ap-northeast-1", "ap-northeast-2", "ap-northeast-3", "ap-south-1", "ap-south-2", "ap-southeast-1", "ap-southeast-2", "ap-southeast-3", "ap-southeast-4", "ap-southeast-5", "ap-southeast-7", "ca-central-1", "ca-west-1", "eu-central-1", "eu-central-2", "eu-north-1", "eu-south-1", "eu-south-2", "eu-west-1", "eu-west-2", "eu-west-3", "il-central-1", "me-central-1", "me-south-1", "mx-central-1", "sa-east-1", "us-east-1", "us-east-2", "us-gov-east-1", "us-gov-west-1", "us-west-1", "us-west-2")]
+		[ValidateSet("af-south-1", "ap-east-1", "ap-northeast-1", "ap-northeast-2", "ap-northeast-3", "ap-south-1", "ap-south-2", "ap-southeast-1", "ap-southeast-2", "ap-southeast-3", "ap-southeast-4", "ap-southeast-5", "ap-southeast-7", "ca-central-1", "ca-west-1", "eu-central-1", "eu-central-2", "eu-north-1", "eu-south-1", "eu-south-2", "eu-west-1", "eu-west-2", "eu-west-3", "il-central-1", "me-central-1", "me-south-1", "mx-central-1", "sa-east-1", "us-east-1", "us-east-2", "us-gov-east-1", "us-gov-west-1", "us-west-1", "us-west-2", IgnoreCase = $true)]
 		$Region
 	)
 
-	$PreviousRegion = $env:AWS_REGION
-	$env:AWS_REGION = $Region
-	Set-DefaultAWSRegion -Region $Region
+	$PreviousRegion = $Env:AWS_REGION ?? "empty"
 
-	Write-host "$(frt('Updated')) $(fvr('AWS_REGION')) $(frt('from')) $(fvl($PreviousRegion)) $(frt('to')) $(fvl($Region))"
+	# Set region for CLI
+	$Env:AWS_REGION = $Region
+
+	# Set region for PowerShell Tools
+	Set-DefaultAWSRegion -Region $Region -Scope Global
+
+	Write-Host "$(frt('Updated')) $(fvr('AWS_REGION')) $(frt('from')) $(fvl($PreviousRegion)) $(frt('to')) $(fvl($Region))"
 }
 
 Function Clear-AWSProfile() {
@@ -38,6 +56,83 @@ Function Clear-AWSProfile() {
 	$evs | ForEach-Object {
 		Write-Host "$(fvr($_.Name)) $(frt('cleared'))"
 	}
+
+	# Clear CLI properties
 	Remove-Item -Path Env:AWS_*
-	Clear-AWSCredential
+
+	# Clear PowerShell Tools properties
+	Clear-AWSDefaultConfiguration -SkipProfileStore -Scope Global
+}
+
+Function Set-AWSProfileCredentialsFromClipboard() {
+	[CmdletBinding()]
+	[Alias("sapc")]
+	Param(
+		[Parameter(Mandatory=$true)]
+		$ExpiresInHours
+	)
+
+	if ([String]::IsNullOrWhiteSpace($Env:AWS_PROFILE)) {
+		throw "AWS_PROFILE is empty, use Set-AWSProfile -Profile PROFILE_NAME activate a profile."
+	}
+	$ProfileName = $Env:AWS_PROFILE
+
+	$ClipboardCredentials = Get-Clipboard
+	if ($ClipboardCredentials -like '*AWS_*') {
+			$ClipboardCredentials = $ClipboardCredentials.Replace("set ", "")
+			$ClipboardCredentials = $ClipboardCredentials.Replace('$Env:', "")
+			$ClipboardCredentials = $ClipboardCredentials.Replace('export', "")
+
+			$ClipboardCredentials | ForEach-Object {
+					if ($_ -notlike '') {
+							$values = $_.Split('=').Trim('"')
+							Write-Debug "aws configure set $($values[0].Trim().ToLower()) $($values[1].Trim()) --profile $ProfileName"
+
+							Write-Host "$(frt('Setting')) $(fvr($values[0].Trim().ToLower()))$(frt('...'))" -NoNewline
+							aws configure set $values[0].Trim().ToLower() $values[1].Trim()
+							Write-Host "done." -ForegroundColor Green
+					}
+				}
+
+				$tokenExpiryName = "x_security_token_expires"
+				$tokenExpiryValue = $(Get-Date).AddHours($ExpiresInHours).AddMinutes(-1).ToString("O")
+
+				Write-Host "$(frt('Setting')) $(fvr($tokenExpiryName))$(frt('...'))" -NoNewline
+
+				$Credentials=Get-AWSCredentialFileContents
+				$Credentials[$ProfileName].Remove($tokenExpiryName)
+				$Credentials[$ProfileName].Add($tokenExpiryName, $tokenExpiryValue)
+				Out-IniFile -InputObject $Credentials -FilePath $(Get-AWSCredentialFile) -Force
+
+				Write-Host "done." -ForegroundColor Green
+	} else {
+			Write-Error "Cannot parse clipboard contents into AWS credentials."
+	}
+
+	# Set session credentials for PowerShell Tools
+	Set-AWSCredential -ProfileName $ProfileName -Scope Global
+}
+
+Function Get-AWSCredentialFileContents() {
+	Get-IniContent $(Get-AWSCredentialFile)
+}
+
+Function Get-AWSCredentialFile() {
+	"$Env:USERPROFILE\.aws\credentials"
+}
+
+Function New-AWSProfile() {
+	Param(
+		[Parameter(Mandatory=$true)]
+		$ProfileName
+	)
+
+	aws configure set aws_access_key_id "PLACEHOLDER" --profile $ProfileName
+	aws configure set aws_secret_access_key "PLACEHOLDER" --profile $ProfileName
+	aws configure set region "us-east-2" --profile $ProfileName
+	aws configure set output "yaml" --profile $ProfileName
+}
+
+Function Get-AWSRegionLocal() {
+	$Env:AWS_REGION ?? $Env:AWS_DEFAULT_REGION ?? $(aws configure get region)
 }
