@@ -1,0 +1,99 @@
+{{ template "Header.tmpl" . }}
+function Open-GitUrl {
+	[Alias("opgu")]
+	Param()
+
+	$url = git ls-remote --get-url 2>nul
+	if ($null -eq $url) {
+		Write-Error "Not a git directory."
+	} else {
+		$url = $url -replace 'git@(.*?):(.*)\.git', 'https://$1/$2'
+		Write-Host "$(frt('Opening')) $(fvl($url))"
+		Start-Process $url
+	}
+}
+
+Function Set-LocationGitRoot {
+	[CmdletBinding()]
+	[Alias("cdgr")]
+	Param()
+
+	$gitRoot = git rev-parse --show-toplevel 2>nul
+	if ($null -ne $gitRoot) {
+		Set-Location -Path $gitRoot
+	} else {
+		Write-Error "Not a git directory."
+	}
+}
+
+function Get-LocalGitBranchesWithDeletedRemotes {
+	[Alias("gbdr")]
+	Param()
+
+	$remoteBranches = (git ls-remote --branches --quiet) -replace ".*refs/(heads)/(.+?)(\^{})?$", '$2' |
+		ForEach-Object {
+			[PSCustomObject]@{
+				Local = ''
+				Remote = $_
+			}
+		}
+
+	$format = @("%(color:brightgreen)%(refname:short)%(color:reset)",
+		"%(color:brightred)%(upstream:short)%(color:reset)",
+		"%(color:yellow)%(objectname:short)%(color:reset)",
+		"%(contents:subject):%(upstream)")
+
+	$localBranches=git for-each-ref refs/heads/ --color=always --format=$format |
+		ForEach-Object {
+			$branches = $_ -split ':'
+			[PSCustomObject]@{
+				Local = $branches[0]
+				Remote = $branches[1] -replace ".*refs/(remotes/origin)/(.+?)(\^{})?$", '$2'
+			}
+		}
+
+	$localBranchesToDelete =
+		Compare-Object -ReferenceObject $remoteBranches -DifferenceObject $localBranches -Property 'Remote' -PassThru |
+			Where-Object { ($_.SideIndicator -eq '=>') -and ('' -ne $_.Remote) }
+
+	$localBranchesToDelete | ForEach-Object {
+		$_.Local | Select-String "." -Raw -NoEmphasis
+	}
+}
+
+function Remove-LocalGitBranchesWithDeletedRemotes {
+	[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
+	[Alias("rbdr")]
+	Param()
+
+	$remoteBranches = (git ls-remote --branches --quiet) -replace ".*refs/(heads)/(.+?)(\^{})?$", '$2' |
+		ForEach-Object {
+			[PSCustomObject]@{
+				Local = ''
+				Remote = $_
+			}
+		}
+
+	$localBranches=git for-each-ref refs/heads/ --format='%(refname:short):%(upstream)' |
+		ForEach-Object {
+			$branches = $_ -split ':'
+			[PSCustomObject]@{
+				Local = $branches[0]
+				Remote = $branches[1] -replace ".*refs/(remotes/origin)/(.+?)(\^{})?$", '$2'
+			}
+		}
+
+	$localBranchesToDelete =
+		Compare-Object -ReferenceObject $remoteBranches -DifferenceObject $localBranches -Property 'Remote' -PassThru |
+			Where-Object { ($_.SideIndicator -eq '=>') -and ('' -ne $_.Remote) }
+
+	if ($PSCmdlet.ShouldProcess('Performing the operation "git remote update --prune"','','')) {
+		git remote update --prune
+	}
+
+	$localBranchesToDelete | ForEach-Object {
+		if ($PSCmdlet.ShouldProcess("$($_.Local)", 'git branch --delete')) {
+			git branch --delete $_.Local
+		}
+	}
+}

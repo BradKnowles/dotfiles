@@ -11,6 +11,8 @@
 
 {{ if lookPath "aws" }}. "$PSScriptRoot/Profile/Aws.ps1"{{ end }}
 
+{{ if lookPath "git" }}. "$PSScriptRoot/Profile/GitFunctions.ps1"{{ end }}
+
 . "$PSScriptRoot/Profile/ShellCompletions.ps1"
 
 
