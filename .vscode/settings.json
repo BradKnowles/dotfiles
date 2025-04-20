@@ -2,7 +2,8 @@
 	"files.associations": {
 		"*.yaml.tmpl": "yaml",
 		"*.ps1.tmpl": "powershell",
-		"*.toml.tmpl": "toml"
+		"*.toml.tmpl": "toml",
+		"dot_gitconfig.tmpl": "properties"
 	},
 	"conventionalCommits.scopes": [
 		"PowerShell",

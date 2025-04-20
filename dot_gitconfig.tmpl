@@ -1,0 +1,96 @@
+[user]
+	name = "Brad Knowles"
+	email = {{ .git.email | quote }}
+	signingKey = {{ .git.gpgSigningKey | quote }}
+
+[commit]
+	gpgSign = true
+
+[core]
+	autocrlf = true
+	whitespace = space-before-tab,trailing-space,cr-at-eol
+
+[credential]
+	helper = manager
+
+[diff]
+	colormoved = zebra
+	tool = bc
+[difftool "bc"]
+	path = C:\\Program Files\\Beyond Compare 5\\BComp.exe
+[difftool]
+	prompt = false
+
+[gpg]
+	program = {{ lookPath "gpg" | quote }}
+
+[init]
+	defaultBranch = main
+
+[merge]
+	tool = bc
+[mergetool "bc"]
+	path = C:\\Program Files\\Beyond Compare 5\\BComp.exe
+[mergetool]
+	keepBackup = false
+
+[fetch]
+	prune = false
+[pull]
+	rebase = true
+[push]
+	autoSetupRemote = true
+	default = simple
+	followTags = true
+[rebase]
+	autoStash = false
+
+[alias]
+	a = add --verbose
+	aa = add --all --verbose
+	af = add --force --verbose
+	ai = add --interactive
+	au = add --update --verbose
+	br = branch
+	cl = clean -dn
+	cm = commit
+	cma = commit --amend
+	cmm = commit --message
+	dc = checkout --
+
+	# `git diff` with difftastic.
+	dft = -c diff.external=difft diff
+	# `git log` with patches shown with difftastic.
+	dl = -c diff.external=difft log -p --ext-diff
+	# Show the most recent commit with difftastic.
+	ds = -c diff.external=difft show --ext-diff
+
+	dt = difftool
+	dtc = difftool --cached
+	ec = config edit --global
+	fetch = fetch --verbose
+	f = fetch --verbose
+	l = "!f() { git log -$1; }; f"
+	la = config --get-regexp alias
+	lns = log --name-status
+	log = log --show-signature
+	lol = log --oneline
+	ma = merge --abort
+	mt = mergetool
+	mnff = merge --no-ff
+	mpr = merge --no-ff --no-commit
+	rb = rebase
+	rba = rebase --abort
+	rbc = rebase --continue
+	rbi = rebase --interactive
+	rv = revert
+	rva = revert --abort
+	rvc = revert --continue
+	s = status --untracked-file --short --branch
+	sw = switch
+	swc = switch --create
+	swm = switch main
+	stl = stash list --format='%gd (%ad): %gs'
+	sts = "!f() { git show stash@{$1} --name-status; }; f"
+	tl = show-ref --tags
+	us = reset HEAD

@@ -11,8 +11,20 @@
 #     Then run `chezmoi init` to apply changes.
 # </auto-generated>
 #-------------------------------------------------------------------------------
-
+{{- $profileName := promptStringOnce . "profile.name" "Give this profile a name" }}
+{{- $email := promptStringOnce . "git.email" "What is your email address" }}
+{{- $gpgSigningKey := promptStringOnce . "git.gpgSigningKey" "Enter the GNUPG key id to be used for signing git commits" }}
 ---
 cd:
   command: pwsh
   args: -NoLogo
+
+data:
+  profile:
+    name: {{ $profileName }}
+  git:
+    email: {{ $email }}
+    gpgSigningKey: {{ $gpgSigningKey }}
+
+diff:
+  command: "difft"
