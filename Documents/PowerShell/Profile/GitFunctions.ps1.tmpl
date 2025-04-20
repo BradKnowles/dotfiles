@@ -26,6 +26,52 @@ Function Set-LocationGitRoot {
 	}
 }
 
+Function Set-GitBranchInteractive {
+	[CmdletBinding()]
+	[Alias("sgbi")]
+	Param()
+
+	$localformat = @("%(color:brightgreen)L: %(refname:short)%(color:reset)",
+	"%(color:brightred)%(upstream:short)%(color:reset)",
+	"%(color:yellow)%(objectname:short)%(color:reset)",
+	"%(contents:subject)")
+
+	$remoteformat = @("%(color:brightred)R: %(refname:short)%(color:reset)",
+	"%(color:yellow)%(objectname:short)%(color:reset)",
+	"%(contents:subject)")
+
+	$remoteBranchesToExclude = [System.Collections.ArrayList]@()
+	git for-each-ref refs/heads --color=always --format=$localformat
+		| Tee-Object -Variable localBranches
+		| ForEach-Object {
+				if ($_ -replace '\e\[[0-9;]*m', '' -match "L: \S+ (\S+) \S+ .+") {
+					if ($null -ne $Matches[1]) {
+						$remoteBranchesToExclude.Add('--exclude') | Out-Null
+						$remoteBranchesToExclude.Add("**/$($Matches[1])") | Out-Null
+					}
+				}
+			}
+
+	$remoteBranches = git for-each-ref refs/remotes/**/[^HEAD]* $remoteBranchesToExclude --color=always --format=$remoteformat
+
+	$allBranches = @($localBranches) + @($remoteBranches)
+	$fzfOptions = @('--height', '90%',
+		'--reverse',
+		'--ansi',
+		'--border',
+		'--border-label', '🌲 Branches ',
+		'--accept-nth=2',
+		'--preview', 'git -c diff.external="difft --display=inline --color=always" show --color=always --ext-diff {2}',
+		'--preview-window' ,'hidden',
+		'--bind', 'alt-p:change-preview-window(right,99%|right,0%)',
+		'--header', 'alt+p: Show Commit
+		')
+	$selectedBranch = $allBranches | fzf $fzfOptions
+	if ($null -ne $selectedBranch) {
+		git switch ($selectedBranch -replace '(?:origin\/)?(\S+).*', '$1')
+	}
+}
+
 function Get-LocalGitBranchesWithDeletedRemotes {
 	[Alias("gbdr")]
 	Param()
