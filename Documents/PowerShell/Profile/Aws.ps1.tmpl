@@ -136,3 +136,45 @@ Function New-AWSProfile() {
 Function Get-AWSRegionLocal() {
 	$Env:AWS_REGION ?? $Env:AWS_DEFAULT_REGION ?? $(aws configure get region)
 }
+
+Function Get-AWSEC2Instances {
+	[Alias("gec2")]
+	Param(
+		[ValidateSet("Pending", "Running", "ShuttingDown", "Terminated", "Stopping", "Stopped", "NotRunning", IgnoreCase = $true)]
+		[string]$State
+	)
+
+	$filters = @{'Name' = 'instance-state-name'}
+	If($PSBoundParameters.ContainsKey('State')) {
+		if($State -eq 'NotRunning') {
+			$filters.Add('Values', @('pending','shutting-down','stopping','stopped'))
+		} else {
+			$filters.Add('Values', @($State.ToLower()))
+		}
+	} else {
+		$filters.Clear()
+	}
+
+	$instances = $(Get-Ec2Instance -Filter $filters).Instances
+		| Select-Object 'InstanceId',
+				@{Name='Name';Expression={$_.Tags[$_.Tags.Key.IndexOf('Name')].Value}},
+				@{Name='PrivateIP';Expression={$_.PrivateIpAddress}},
+				@{Name='State';Expression={$_.State.Name}}
+
+	$statuses=@{}
+	Get-EC2InstanceStatus -Filter $filters | ForEach-Object {
+			$statuses.Add($_.InstanceId, @{
+				AttachedEbsStatus = $_.AttachedEbsStatus.Details.Status;
+				Status = $_.Status.Details.Status;
+				SystemStatus = $_.SystemStatus.Details.Status
+			}
+		)
+	}
+
+	foreach($instance in $instances) {
+		$instance | Add-Member -MemberType NoteProperty -Name 'AttachedEbsStatus' -Value ($statuses[$instance.InstanceId].AttachedEbsStatus ?? "N/A")
+		$instance | Add-Member -MemberType NoteProperty -Name 'Status' -Value ($statuses[$instance.InstanceId].Status ?? "N/A")
+		$instance | Add-Member -MemberType NoteProperty -Name 'SystemStatus' -Value ($statuses[$instance.InstanceId].SystemStatus ?? "N/A")
+	}
+	$instances | Format-Table -AutoSize
+}
