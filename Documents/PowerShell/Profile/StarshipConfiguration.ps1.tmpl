@@ -1,0 +1,25 @@
+function Invoke-Starship-PreCommand {
+	$icons=@{
+		Admin = "🕵🏻‍♂️"
+		Cloud = "☁️"
+		Directory = "📁"
+	}
+
+	$directory = Split-Path -Path $pwd -Leaf
+	$directoryTitle = "$($icons.Directory) $directory"
+	$title = $directoryTitle
+
+	$user = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+	if ($user.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+		$title = "$($icons.Admin) $title"
+	}
+
+	if ($env:AWS_PROFILE) {
+		$awsTitle = "$($icons.Cloud) $env:AWS_PROFILE"
+		$title += " $awsTitle"
+	}
+
+	$host.ui.RawUI.WindowTitle = $title
+}
+
+Invoke-Expression (&starship init powershell)

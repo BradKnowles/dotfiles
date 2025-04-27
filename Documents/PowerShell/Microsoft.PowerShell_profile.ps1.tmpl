@@ -13,9 +13,10 @@
 
 {{ if lookPath "git" }}. "$PSScriptRoot/Profile/GitFunctions.ps1"{{ end }}
 
+{{ if lookPath "starship" }}. "$PSScriptRoot/Profile/StarshipConfiguration.ps1"{{ end }}
+
 . "$PSScriptRoot/Profile/ShellCompletions.ps1"
 
 
 
-Invoke-Expression (&starship init powershell)
 Invoke-Expression (& { (zoxide init powershell | Out-String) })

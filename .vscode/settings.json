@@ -9,6 +9,7 @@
 		"PowerShell",
 		"AWS",
 		"Chezmoi",
-		"Git"
+		"Git",
+		"Starship"
 	],
 }
