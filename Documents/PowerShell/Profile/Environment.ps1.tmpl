@@ -1,0 +1,8 @@
+{{ template "Header.tmpl" . }}
+# Set XDG Base Directory Specification paths
+# https://specifications.freedesktop.org/basedir-spec/latest/
+# https://wiki.archlinux.org/title/XDG_Base_Directory
+$env:XDG_CONFIG_HOME="$env:USERPROFILE\.config"
+$env:XDG_CACHE_HOME="$env:USERPROFILE\.cache"
+$env:XDG_DATA_HOME="$env:USERPROFILE\.local\share"
+$env:XDG_STATE_HOME="$env:USERPROFILE\.local\state"
