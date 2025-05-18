@@ -1,15 +1,17 @@
 {
 	"files.associations": {
-		"*.yaml.tmpl": "yaml",
+		"*.json.tmpl": "json",
 		"*.ps1.tmpl": "powershell",
 		"*.toml.tmpl": "toml",
-		"**/dot_config/git/config.tmpl": "properties"
+		"**/dot_config/git/config.tmpl": "properties",
+		"*.yaml.tmpl": "yaml"
 	},
 	"conventionalCommits.scopes": [
 		"PowerShell",
 		"AWS",
 		"Chezmoi",
 		"Git",
-		"Starship"
+		"Starship",
+		"WindowsTerminal"
 	],
 }
