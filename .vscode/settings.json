@@ -3,7 +3,7 @@
 		"*.yaml.tmpl": "yaml",
 		"*.ps1.tmpl": "powershell",
 		"*.toml.tmpl": "toml",
-		"dot_gitconfig.tmpl": "properties"
+		"**/dot_config/git/config.tmpl": "properties"
 	},
 	"conventionalCommits.scopes": [
 		"PowerShell",

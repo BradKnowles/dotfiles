@@ -19,5 +19,5 @@ max_line_length          = 120
 [*.{yaml,yaml.tmpl}]
 indent_style             = space
 
-[dot_gitconfig.tmpl]
+[dot_config/git/config.tmpl]
 end_of_line              = lf
