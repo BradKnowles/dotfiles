@@ -17,5 +17,9 @@
 # Allow chezmoi configuration files
 !.chezmoiignore
 
-# # Allow template files anywhere
+# Allow template files anywhere
 !*.tmpl
+
+# Allow image files anywhere
+!*.png
+!*.ico
