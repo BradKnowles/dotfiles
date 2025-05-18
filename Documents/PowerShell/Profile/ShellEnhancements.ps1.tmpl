@@ -12,7 +12,7 @@ Function Set-NewLocation {
 
 Function Copy-LocationToClipboard {
 	[CmdletBinding(DefaultParameterSetName='Path')]
-	[Alias("cdir", "pwdc")]
+	[Alias("pwdc")]
 	Param(
 		[Parameter(ParameterSetName = 'Posix', Position = 0)]
 		[Parameter(ParameterSetName = 'WSL', Position = 0)]
