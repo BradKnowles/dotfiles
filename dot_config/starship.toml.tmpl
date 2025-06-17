@@ -1,4 +1,7 @@
 {{ template "Header.tmpl" . }}
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
 [battery]
 disabled = false
 
@@ -9,6 +12,8 @@ style = 'cyan'
 
 [dotnet]
 detect_extensions = ['csproj', 'fsproj', 'xproj', 'sln']
+heuristic = false
+
 
 [time]
 disabled = false
