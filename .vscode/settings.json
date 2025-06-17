@@ -12,6 +12,7 @@
 		"Chezmoi",
 		"Git",
 		"Starship",
-		"WindowsTerminal"
+		"WindowsTerminal",
+		"VSCode"
 	],
 }
