@@ -178,3 +178,81 @@ Function Get-AWSEC2Instances {
 	}
 	$instances | Format-Table -AutoSize
 }
+
+Function Set-AwsEc2CacheFile {
+	$cacheFile = "$env:USERPROFILE\.aws\pscache.yaml"
+
+	if (-not (Test-Path -Path $cacheFile -PathType Leaf)) {
+		$cache = [ordered]@{
+			ec2 = [ordered]@{
+				settings = [ordered]@{
+					'cache-timeout' = "01:00:00"
+					'last-updated' = $(Get-Date).AddHours(-2)
+					'starting-local-port' = 2000
+				}
+				instances = @()
+			}
+		}
+
+		$cache | ConvertTo-Yaml -Depth 3 | Out-File -FilePath $cacheFile
+	}
+
+	$cacheFile
+}
+
+Function Update-AwsEc2Cache {
+	[CmdletBinding()]
+	param (
+			[switch]$Force
+	)
+
+	$debug = $PSCmdlet.MyInvocation.BoundParameters["Debug"].IsPresent
+
+	$cacheFile = Set-AwsEc2CacheFile
+	Write-Debug "$(fvr('$cacheFile')) = $(fvl($cacheFile))"
+
+	$cache = Get-Content $cacheFile -Raw | ConvertFrom-Yaml
+	$cacheUpdateDifference = New-TimeSpan -Start ([DateTime]($cache.ec2.settings.'last-updated' ?? (Get-Date))) -End (Get-Date)
+
+	Write-Debug "$(fvr('$cacheLastUpdated')) = $(fvl([DateTime]$cache.ec2.settings.'last-updated'))"
+	Write-Debug "$(fvr('$cacheUpdateDifference')) = $(fvl($cacheUpdateDifference))"
+
+	if ((-not $Force) -and ($cacheUpdateDifference -lt [TimeSpan]$cache.ec2.settings.'cache-timeout')) {
+			Write-Host "$(frt('Cache timeout of')) $(fvl($cache.ec2.settings.'cache-timeout')) $(frt('not expired, skipping update.'))"
+			return
+	}
+
+	Write-Host "$(frt("Updating EC2 Cache..."))"
+
+	$filters = @{'Name' = 'instance-state-name';
+			'Values'= @('pending', 'running', 'shutting-down', 'stopping', 'stopped')}
+
+	$instances = $(Get-Ec2Instance -Filter $filters).Instances
+		| Select-Object @{Name='name';Expression={$_.Tags[$_.Tags.Key.IndexOf('Name')].Value}},
+				@{Name='instance-id'; Expression={$_.InstanceId}},
+				@{Name='private-ip'; Expression={$_.PrivateIpAddress}},
+				@{Name='public-ip'; Expression={$_.PublicIpAddress}},
+				@{Name='protocol';Expression={($_.Platform -ilike '*Windows*') ? ('rdp') : ('ssh') }}
+
+	if ($debug) {
+			Write-Host
+			foreach ($i in $cache.ec2.instances) {
+					Write-Debug "$(frt('Removing')) $(fvl("$($i.name) - $($i.'instance-id')"))"
+			}
+	}
+
+	$startingPort = $cache.ec2.settings.'starting-local-port'
+	$result = [System.Collections.ArrayList]::new()
+	$instances | ForEach-Object {
+			$_ | Add-Member -MemberType NoteProperty -Name 'local-port' -Value $startingPort
+			[void]$result.Add($_)
+			$startingPort++
+	}
+
+	$cache.ec2.instances = $result
+	$cache.ec2.settings.'last-updated' = Get-Date
+	$cache | ConvertTo-Yaml -Depth 3 | Out-File -FilePath $cacheFile
+
+	$result | Format-Table
+	Write-Host "$(fs('done.'))"
+}
