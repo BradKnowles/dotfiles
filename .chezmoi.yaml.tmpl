@@ -33,3 +33,11 @@ data:
 
 diff:
   command: "difft"
+merge:
+  command: C:\Program Files\Beyond Compare 5\BComp.exe
+  args:
+    - '{{ "{{ .Destination }}" }}'
+    - '{{ "{{ .Source }}" }}'
+    - '{{ "{{ .Target }}" }}'
+    - '{{ "{{ .Source }}" }}'
+
