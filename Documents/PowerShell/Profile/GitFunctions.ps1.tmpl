@@ -7,6 +7,7 @@ function Open-GitUrl {
 	if ($null -eq $url) {
 		Write-Error "Not a git directory."
 	} else {
+		$url = $url -replace 'git@ssh\.([^:]+):(.*)\.git', 'https://$1/$2'
 		$url = $url -replace 'git@(.*?):(.*)\.git', 'https://$1/$2'
 		Write-Host "$(frt('Opening')) $(fvl($url))"
 		Start-Process $url
