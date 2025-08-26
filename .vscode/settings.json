@@ -13,6 +13,7 @@
 		"Git",
 		"Starship",
 		"WindowsTerminal",
-		"VSCode"
+		"VSCode",
+		"Aliases"
 	],
 }
