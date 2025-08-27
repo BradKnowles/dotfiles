@@ -10,6 +10,53 @@ Function Set-NewLocation {
 	New-Item -ItemType Directory $Path | ForEach-Object { Set-Location $_ }
 }
 
+Function Set-LocationToContainingDirectory {
+	[CmdletBinding()]
+	[Alias("cdd")]
+	Param(
+		[Parameter(ValueFromPipeline)] $Path
+	)
+
+	Set-Location -Path ($Path |  Split-Path -Parent)
+}
+
+Function Set-LocationInteractive {
+	[CmdletBinding()]
+	[Alias("cdi")]
+	Param(
+			[Parameter()]
+			[switch]$File,
+			[switch]$All
+	)
+
+	# Build fd command arguments
+	$fdArgs = @('--color=always')
+
+	if ($File) {
+			$fdArgs += '--type', 'file'
+	} else {
+			$fdArgs += '--type', 'dir', '--exclude', '.git'
+	}
+
+	if ($All) {
+			$fdArgs += '--unrestricted'
+	}
+
+	# Common fzf options
+	$fzfOptions = '--height=90% --reverse --border --ansi'
+
+	# Execute fd and fzf
+	$Selection = & fd @fdArgs | & fzf ($fzfOptions -split ' ')
+
+	if ($null -ne $Selection) {
+			if ($File) {
+					Set-Location (Split-Path -Path $Selection -Parent)
+			} else {
+					Set-Location $Selection
+			}
+	}
+}
+
 Function Copy-LocationToClipboard {
 	[CmdletBinding(DefaultParameterSetName='Path')]
 	[Alias("pwdc")]
@@ -37,21 +84,38 @@ Function Copy-LocationToClipboard {
 	Write-Host("$(fvl($ResolvedPath)) $(frt('copied to clipboard.'))")
 }
 
-Function Set-LocationInteractive {
+function Edit-Profile {
+	[Alias("ep")]
+	Param()
+	code ($PROFILE | Split-Path -Parent)
+}
+
+Function Edit-Chezmoi {
+	[Alias("ecm")]
+	Param()
+	code $env:USERPROFILE\.local\share\chezmoi
+}
+
+function Show-ApprovedVerbs {
 	[CmdletBinding()]
-	[Alias("cdi")]
-	Param(
-		[Parameter()]
-		[switch]$File
+	param(
+			[switch]$SortByVerb
 	)
 
-	$Location = Get-Location
-	if ($File) {
-		$Location = fd --type file --color=always | fzf --height=90% --reverse --border --ansi
-		if ($null -ne $Location) {
-			Set-Location (Split-Path -Path $Location -Parent)
-		}
-	} else {
-		fd --type dir --exclude .git --color=always | fzf --height=90% --reverse --border --ansi | Set-Location
+	$verbs = Get-Verb
+
+	if ($SortByVerb) {
+			$grouped = $verbs | Sort-Object Verb | Group-Object Group
+	}
+	else {
+			$grouped = $verbs | Group-Object Group
+	}
+
+	foreach ($group in $grouped | Sort-Object Name) {
+			Write-Host "`n[$($group.Name)]" -ForegroundColor Cyan
+
+			$group.Group | ForEach-Object {
+					Write-Host ("{0,-15} - {1}" -f $_.Verb, $_.Description)
+			}
 	}
 }
