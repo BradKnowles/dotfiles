@@ -7,13 +7,13 @@
 		"*.yaml.tmpl": "yaml"
 	},
 	"conventionalCommits.scopes": [
-		"PowerShell",
+		"Aliases",
 		"AWS",
 		"Chezmoi",
 		"Git",
+		"PowerShell",
 		"Starship",
-		"WindowsTerminal",
 		"VSCode",
-		"Aliases"
+		"WindowsTerminal",
 	],
 }
