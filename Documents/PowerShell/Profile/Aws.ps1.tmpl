@@ -318,3 +318,102 @@ Function Get-EC2Password {
 		Write-Error "Password not retrieved. Unable to find $($(fvl($params.PemFile)))"
 	}
 }
+
+Function Start-AwsEc2Instance {
+	[CmdletBinding()]
+	[Alias("saec2")]
+	Param(
+		[Switch]$All
+	)
+
+	# Get stopped instances
+	$filters = @{
+		'Name' = 'instance-state-name'
+		'Values'= @('stopped')
+	}
+
+	$stoppedInstances = $(Get-Ec2Instance -Filter $filters).Instances
+		| Select-Object 'InstanceId',
+				@{Name='Name';Expression={$_.Tags[$_.Tags.Key.IndexOf('Name')].Value}}
+
+	if (($stoppedInstances | Measure-Object).Count -eq 0) {
+		Write-Host "$(frt('No stopped instances to be started.'))"
+		return
+	}
+
+	## Determine which instances to start
+	# If All flag is passed start all instances
+	if ($All) {
+		$instancesToStart = ($stoppedInstances | Select-Object -ExpandProperty InstanceId)
+	} else {
+	# Use fzf to multiselect instances for starting
+		$fzfOptions = @('--height', '~100%',
+			'--layout','reverse',
+			'--ansi',
+			'--border', 'rounded',
+			'--multi', '--accept-nth=1',
+			'--header', "Select Instance(s) to Start`nTAB: Select Instance; CTRL-A:Select all; CTRL-D:Deselect all; ESC: Abort",
+			'--header-border','rounded'
+			'--bind', 'ctrl-a:select-all,ctrl-d:deselect-all'
+		)
+
+		$instancesToStart = $stoppedInstances | ForEach-Object {"$($_.InstanceId)`t$($_.Name)"} | fzf $fzfOptions
+		if (($instancesToStart | Measure-Object).Count -eq 0) {
+			Write-Host "$(frt('No instances selected, nothing to start.'))"
+			return
+		}
+	}
+
+	Start-EC2Instance -InstanceId $instancesToStart
+		| Select-Object @{Name='CurrentState';Expression={$_.CurrentState.Name}},
+				InstanceId, @{Name='PreviousState';Expression={$_.PreviousState.Name}}
+}
+
+Function Stop-AwsEc2Instance {
+	[CmdletBinding()]
+	[Alias("spec2")]
+	Param(
+		[Switch]$All
+	)
+
+	# Get running instances
+	$filters = @{
+		'Name' = 'instance-state-name'
+		'Values'= @('running')
+	}
+
+	$runningInstances = $(Get-Ec2Instance -Filter $filters).Instances
+		| Select-Object 'InstanceId', @{Name='Name';Expression={$_.Tags[$_.Tags.Key.IndexOf('Name')].Value}}
+
+	if (($runningInstances | Measure-Object).Count -eq 0) {
+		Write-Host "$(frt('No running instances to be stopped.'))"
+		return
+	}
+
+	## Determine which instances to stop
+	# If All flag is passed stop all instances
+	if ($All) {
+		$instancesToStop = ($runningInstances | Select-Object -ExpandProperty InstanceId)
+	} else {
+	# Use fzf to multiselect instances for stopping
+		$fzfOptions = @('--height', '~100%',
+			'--layout',	'reverse',
+			'--ansi',
+			'--border', 'rounded',
+			'--multi', '--accept-nth=1',
+			'--header', "Select Instance(s) to Stop`nTAB: Select Instance; CTRL-A:Select all; CTRL-D:Deselect all; ESC: Abort",
+			'--header-border','rounded'
+			'--bind', 'ctrl-a:select-all,ctrl-d:deselect-all'
+		)
+
+		$instancesToStop = $runningInstances | ForEach-Object {"$($_.InstanceId)`t$($_.Name)"} | fzf $fzfOptions
+		if (($instancesToStop | Measure-Object).Count -eq 0) {
+			Write-Host "$(frt('No instances selected, nothing to stop.'))"
+			return
+		}
+	}
+
+	Stop-EC2Instance -InstanceId $instancesToStop
+		| Select-Object @{Name='CurrentState';Expression={$_.CurrentState.Name}},
+				InstanceId, @{Name='PreviousState';Expression={$_.PreviousState.Name}}
+}
