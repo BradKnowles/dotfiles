@@ -1,4 +1,12 @@
 {{ template "Header.tmpl" . }}
+Function Edit-AwsConfig() {
+	[CmdletBinding()]
+	[Alias("eaws")]
+	Param()
+
+  code $env:USERPROFILE\.aws
+}
+
 Function Set-AWSProfile() {
 	[CmdletBinding()]
 	[Alias("sap")]
