@@ -15,8 +15,8 @@ function Invoke-Starship-PreCommand {
 		$title = "$($icons.Admin) $title"
 	}
 
-	if ($env:AWS_PROFILE) {
-		$awsTitle = "$($icons.Cloud) $env:AWS_PROFILE"
+	if ($Env:AWS_PROFILE) {
+		$awsTitle = "$($icons.Cloud) $Env:AWS_PROFILE"
 		$title += " $awsTitle"
 	}
 

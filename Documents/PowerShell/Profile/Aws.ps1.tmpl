@@ -4,7 +4,7 @@ Function Edit-AwsConfig() {
 	[Alias("eaws")]
 	Param()
 
-  code $env:USERPROFILE\.aws
+  code $Env:USERPROFILE\.aws
 }
 
 Function Set-AWSProfile() {
@@ -188,7 +188,7 @@ Function Get-AWSEC2Instances {
 }
 
 Function Set-AwsEc2CacheFile {
-	$cacheFile = "$env:USERPROFILE\.aws\pscache.yaml"
+	$cacheFile = "$Env:USERPROFILE\.aws\pscache.yaml"
 	Write-Debug "$(fvr('$cacheFile')) = $(fvl($cacheFile))"
 
 	if (-not (Test-Path -Path $cacheFile -PathType Leaf)) {
@@ -314,7 +314,7 @@ Function Get-EC2Password {
 
 	$params = @{
 		InstanceId = $InstanceId
-		PemFile = "$env:USERPROFILE\.aws\ec2-keys\$KeyName.pem"
+		PemFile = "$Env:USERPROFILE\.aws\ec2-keys\$KeyName.pem"
 	}
 
 	if (Test-Path -Path $params.PemFile) {
