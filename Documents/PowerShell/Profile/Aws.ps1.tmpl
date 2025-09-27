@@ -21,7 +21,7 @@ Function Set-AWSProfile() {
 	$Env:AWS_PROFILE = $ProfileName
 
 	# If profile doesn't exist in .aws directory, create a placeholder
-	if ($null -eq $(Get-AWSCredentialFileContents)[$ProfileName]) {
+	if ($null -eq $(Read-AwsCredentialFile)[$ProfileName]) {
 		New-AWSProfile -ProfileName $ProfileName
 	}
 
@@ -72,61 +72,169 @@ Function Clear-AWSProfile() {
 	Clear-AWSDefaultConfiguration -SkipProfileStore -Scope Global
 }
 
-Function Set-AWSProfileCredentialsFromClipboard() {
+Function Connect-AwsAccount() {
 	[CmdletBinding()]
-	[Alias("sapc")]
-	Param(
-		[Parameter(Mandatory=$true)]
-		$ExpiresInHours
-	)
+	[Alias("ccaws")]
 
-	if ([String]::IsNullOrWhiteSpace($Env:AWS_PROFILE)) {
-		throw "AWS_PROFILE is empty, use Set-AWSProfile -Profile PROFILE_NAME activate a profile."
+	$profileName = $Env:AWS_PROFILE
+	if ([String]::IsNullOrWhiteSpace($profileName)) {
+		Write-Error "AWS_PROFILE is empty, use Set-AWSProfile -Profile PROFILE_NAME to activate a profile."
+		Return
 	}
-	$ProfileName = $Env:AWS_PROFILE
 
-	$ClipboardCredentials = Get-Clipboard
-	if ($ClipboardCredentials -like '*AWS_*') {
-			$ClipboardCredentials = $ClipboardCredentials.Replace("set ", "")
-			$ClipboardCredentials = $ClipboardCredentials.Replace('$Env:', "")
-			$ClipboardCredentials = $ClipboardCredentials.Replace('export', "")
+	$rawCredentials = $null
+	$validCredentials = $false
+	$keyMapping = @{
+		AccessKeyId = "aws_access_key_id"
+		SecretAccessKey = "aws_secret_access_key"
+		SessionToken = "aws_session_token"
+		aws_access_key_id = "aws_access_key_id"
+		aws_secret_access_key = "aws_secret_access_key"
+		aws_session_token = "aws_session_token"
+		AWS_EXPIRATION = "x_security_token_expires"
+		Expiration = "x_security_token_expires"
+		x_security_token_expires = "x_security_token_expires"
+	}
 
-			$ClipboardCredentials | ForEach-Object {
-					if ($_ -notlike '') {
-							$values = $_.Split('=').Trim('"')
-							Write-Debug "aws configure set $($values[0].Trim().ToLower()) $($values[1].Trim()) --profile $ProfileName"
+	$credentialProcess = $null;$source = $null
 
-							Write-Host "$(frt('Setting')) $(fvr($values[0].Trim().ToLower()))$(frt('...'))" -NoNewline
-							aws configure set $values[0].Trim().ToLower() $values[1].Trim()
-							Write-Host "done." -ForegroundColor Green
-					}
-				}
+	# 1. Check for 'credential_process'
+	$cp = aws configure get credential_process
+	if ($null -ne $cp) {
+			$credentialProcess = $cp
+			$source = 'credential_process'
+	}
 
-				$tokenExpiryName = "x_security_token_expires"
-				$tokenExpiryValue = $(Get-Date).AddHours($ExpiresInHours).AddMinutes(-1).ToString("O")
+	# 2. If not found, check for 'ps_credential_process'
+	if (-not $credentialProcess) {
+			$cp = aws configure get ps_credential_process
+			if ($null -ne $cp) {
+					$credentialProcess = $cp
+					$source = 'ps_credential_process'
+			}
+	}
 
-				Write-Host "$(frt('Setting')) $(fvr($tokenExpiryName))$(frt('...'))" -NoNewline
-
-				$Credentials=Get-AWSCredentialFileContents
-				$Credentials[$ProfileName].Remove($tokenExpiryName)
-				$Credentials[$ProfileName].Add($tokenExpiryName, $tokenExpiryValue)
-				Out-IniFile -InputObject $Credentials -FilePath $(Get-AWSCredentialFile) -Force
-
-				Write-Host "done." -ForegroundColor Green
+	# 3. If still not found, fallback to clipboard
+	if (-not $credentialProcess) {
+			$source = 'clipboard'
+			$rawCredentials = Get-Clipboard -Raw
 	} else {
-			Write-Error "Cannot parse clipboard contents into AWS credentials."
+			$rawCredentials = Invoke-Expression $credentialProcess
 	}
 
-	# Set session credentials for PowerShell Tools
-	Set-AWSCredential -ProfileName $ProfileName -Scope Global
-}
+	# Announce which source was used (only once)
+	Write-Host "$(frt('Using')) $(fvr($source))"
+	Write-Debug "Clipboard `$rawCredentials = $rawCredentials"
 
-Function Get-AWSCredentialFileContents() {
-	Get-IniContent $(Get-AWSCredentialFile)
+	# Look for any of the mapped keys in the credentials to determinate validity
+	foreach($key in $keyMapping.Keys) {
+		if ($rawCredentials -like "*$key*") {
+			$validCredentials = $true
+			break
+		}
+	}
+	Write-Debug "`$validCredentials = $validCredentials"
+	if ($validCredentials -eq $false) {
+		Write-Error "Cannot parse contents into AWS credentials."
+		Return
+	}
+
+	$parsedCredentials = [ordered]@{
+		aws_access_key_id = $null
+		aws_secret_access_key = $null
+		aws_session_token = $null
+		x_security_token_expires = $null
+	}
+
+	# Determine if credentils are JSON or (most likely) environment variables
+	if ($rawCredentials | Test-Json -ErrorAction SilentlyContinue) {
+		# If JSON, map raw credentials into parsed ones
+		Write-Debug "JSON credentials"
+		$jsonCredentials = $rawCredentials | ConvertFrom-Json
+		foreach($property in $jsonCredentials.PSObject.Properties) {
+			if ($keyMapping.ContainsKey($property.Name)) {
+				$credentialKey = $keyMapping[$property.Name]
+				$parsedCredentials.$credentialKey = $property.Value
+			}
+		}
+	} else {
+		# If environment variables, strip the commands, leaving the values
+		# Then map the credentials into parsed ones
+		Write-Debug "String credentials"
+		$rawCredentials = $rawCredentials.Replace('set ', '')
+		$rawCredentials = $rawCredentials.Replace('$Env:', '')
+		$rawCredentials = $rawCredentials.Replace('export ', '')
+		$stringCredentials = -split $rawCredentials
+		$stringCredentials | ForEach-Object {
+			if ($_ -notlike '') {
+					$values = $_.Split('=').Trim('"')
+					if ($keyMapping.ContainsKey($values[0])) {
+						Write-Debug "keyMapping found for $($values[0])"
+						$credentialKey = $keyMapping[$values[0]]
+						$parsedCredentials.$credentialKey = $values[1]
+					}
+			}
+		}
+	}
+
+	# Sometimes credential providers will supply some kind of session expiration
+	# indicator. If not specified, prompt the user for the known default
+	# expiration and store in `default_role_duration` in AWS config file.
+	# If the expiration is specified, use the value provided.
+	if ($null -eq $parsedCredentials.x_security_token_expires) {
+		Write-Debug "No role duration detected"
+		[Int32]$defaultRoleDuration = aws configure get default_role_duration
+		Write-Debug "`$defaultRoleDuration = $defaultRoleDuration"
+
+		if ($defaultRoleDuration -eq 0) {
+			[Int32]$promptedRoleDuration = Read-Host -Prompt "Please enter the default role duration, in hours"
+			aws configure set default_role_duration $promptedRoleDuration
+			[Int32]$defaultRoleDuration = $promptedRoleDuration
+			Write-Debug "`$defaultRoleDuration = $defaultRoleDuration"
+		}
+		$parsedCredentials.x_security_token_expires = $(Get-Date).AddHours($defaultRoleDuration).ToString("O")
+	}
+
+	# Write parsed credentials to file
+	foreach($credential in $parsedCredentials.GetEnumerator()) {
+		if ($null -eq $credential.Value) {
+			break
+		}
+
+		Write-Debug "aws configure set $($credential.Name) $($credential.Value) --profile $profileName"
+		Write-Host "$(frt('Setting')) $(fvr($credential.Name))$(frt('...'))" -NoNewline
+
+		switch ($credential.Name) {
+			"x_security_token_expires" {
+				# This token has to be written in .aws/credentials file.
+				# aws configure command writes non-standard values to the .aws/config file.
+				# Manually load the .aws/credentials file and store the token properly
+				$expirationDate = [System.DateTimeOffset]::Parse($credential.Value)
+				$credentialsFile=Read-AwsCredentialFile
+				$credentialsFile[$profileName].Remove('x_security_token_expires')
+				$credentialsFile[$profileName].Add('x_security_token_expires', ($expirationDate).ToString("O"))
+				Write-AwsCredentialFile -InputObject $credentialsFile
+			}
+			default { aws configure set $credential.Name $credential.Value }
+		}
+		Write-Host "$(fs('done.'))"
+	}
 }
 
 Function Get-AWSCredentialFile() {
 	"$Env:USERPROFILE\.aws\credentials"
+}
+
+Function Read-AwsCredentialFile() {
+	Import-Ini -Path $(Get-AWSCredentialFile)
+}
+
+Function Write-AwsCredentialFile {
+	Param(
+		[Parameter(Mandatory=$true)]
+		$InputObject
+	)
+	Out-IniFile -InputObject $InputObject -FilePath $(Get-AWSCredentialFile) -Force
 }
 
 Function New-AWSProfile() {
