@@ -7,7 +7,7 @@ Function Edit-AwsConfig() {
   code $Env:USERPROFILE\.aws
 }
 
-Function Set-AWSProfile() {
+Function Set-AwsProfile() {
 	[CmdletBinding()]
 	[Alias("sap")]
 	Param(
@@ -22,7 +22,7 @@ Function Set-AWSProfile() {
 
 	# If profile doesn't exist in .aws directory, create a placeholder
 	if ($null -eq $(Read-AwsCredentialFile)[$ProfileName]) {
-		New-AWSProfile -ProfileName $ProfileName
+		Add-AwsProfile -ProfileName $ProfileName
 	}
 
 	Write-Host "$(frt('Updated')) $(fvr('AWS_PROFILE')) $(frt('from')) $(fvl($PreviousProfile)) $(frt('to')) $(fvl($ProfileName))"
@@ -31,10 +31,10 @@ Function Set-AWSProfile() {
 	Set-AWSCredential -ProfileName $ProfileName -Scope Global
 
 	#Set region for CLI and PowerShell Tools
-	Set-AWSRegion -Region $(Get-AWSRegionLocal)
+	Set-AwsRegion -Region $(Get-AwsRegionLocal)
 }
 
-Function Set-AWSRegion() {
+Function Set-AwsRegion() {
 	[CmdletBinding()]
 	[Alias("sar")]
 	Param(
@@ -55,7 +55,7 @@ Function Set-AWSRegion() {
 	Write-Host "$(frt('Updated')) $(fvr('AWS_REGION')) $(frt('from')) $(fvl($PreviousRegion)) $(frt('to')) $(fvl($Region))"
 }
 
-Function Clear-AWSProfile() {
+Function Clear-AwsProfile() {
 	[CmdletBinding()]
 	[Alias("cap")]
 	Param()
@@ -78,7 +78,7 @@ Function Connect-AwsAccount() {
 
 	$profileName = $Env:AWS_PROFILE
 	if ([String]::IsNullOrWhiteSpace($profileName)) {
-		Write-Error "AWS_PROFILE is empty, use Set-AWSProfile -Profile PROFILE_NAME to activate a profile."
+		Write-Error "AWS_PROFILE is empty, use Set-AwsProfile -Profile PROFILE_NAME to activate a profile."
 		Return
 	}
 
@@ -221,12 +221,12 @@ Function Connect-AwsAccount() {
 	}
 }
 
-Function Get-AWSCredentialFile() {
+Function Get-AwsCredentialFile() {
 	"$Env:USERPROFILE\.aws\credentials"
 }
 
 Function Read-AwsCredentialFile() {
-	Import-Ini -Path $(Get-AWSCredentialFile)
+	Import-Ini -Path $(Get-AwsCredentialFile)
 }
 
 Function Write-AwsCredentialFile {
@@ -234,10 +234,10 @@ Function Write-AwsCredentialFile {
 		[Parameter(Mandatory=$true)]
 		$InputObject
 	)
-	Out-IniFile -InputObject $InputObject -FilePath $(Get-AWSCredentialFile) -Force
+	Out-IniFile -InputObject $InputObject -FilePath $(Get-AwsCredentialFile) -Force
 }
 
-Function New-AWSProfile() {
+Function Add-AwsProfile() {
 	Param(
 		[Parameter(Mandatory=$true)]
 		$ProfileName
@@ -249,11 +249,11 @@ Function New-AWSProfile() {
 	aws configure set output "yaml" --profile $ProfileName
 }
 
-Function Get-AWSRegionLocal() {
+Function Get-AwsRegionLocal() {
 	$Env:AWS_REGION ?? $Env:AWS_DEFAULT_REGION ?? $(aws configure get region)
 }
 
-Function Get-AWSEC2Instances {
+Function Get-AwsEc2Instances {
 	[Alias("gec2")]
 	Param(
 		[ValidateSet("Pending", "Running", "ShuttingDown", "Terminated", "Stopping", "Stopped", "NotRunning", IgnoreCase = $true)]
@@ -375,13 +375,13 @@ Function Update-AwsEc2Cache {
 	Write-Host "$(fs('done.'))"
 }
 
-Function Get-AWSCache {
+Function Get-AwsCache {
 	$cacheFile = Set-AwsEc2CacheFile
 	Update-AwsEc2Cache
 	Get-Content $cacheFile -Raw | ConvertFrom-Yaml
 }
 
-function Connect-AWSSSMPort {
+function Connect-AwsSsmPort {
 	[Alias('cssmp')]
 	Param(
 		[Parameter()]
@@ -389,7 +389,7 @@ function Connect-AWSSSMPort {
 		[Switch]$WithPassword
 	)
 
-	$cache = Get-AWSCache
+	$cache = Get-AwsCache
 	$instance = $cache.ec2.instances | Where-Object {$_.'name' -eq $InstanceName}
 	$portNumber = ($instance.'protocol' -eq 'rdp') ? '3389' : '22'
 
@@ -403,14 +403,14 @@ function Connect-AWSSSMPort {
 	}
 
 	if ($WithPassword) {
-		Get-EC2Password -InstanceId $instance.'instance-id' -KeyName $instance.'key-name'
+		Get-AwsEc2Password-InstanceId $instance.'instance-id' -KeyName $instance.'key-name'
 	}
 
 	Write-Host "$(frt('Connecting to')) $(fvl("$($instance.'name') - $($instance.'instance-id')")) $(fvr('LocalPort')) $(fvl($($instance.'local-port'))) $(fvr('RemotePort')) $(fvl($portNumber))"
 	Start-SSMSession @sessionParams
 }
 
-Function Get-EC2Password {
+Function Get-AwsEc2Password {
 	[CmdletBinding()]
 	[Alias("gec2p")]
 	Param(
