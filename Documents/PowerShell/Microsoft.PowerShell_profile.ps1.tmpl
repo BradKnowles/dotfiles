@@ -18,7 +18,11 @@
 {{ if lookPath "starship" }}. "$PSScriptRoot/Profile/StarshipConfiguration.ps1"{{ end }}
 
 . "$PSScriptRoot/Profile/ShellCompletions.ps1"
-
-
-
+{{ range $index, $element := .roles }}
+{{- $path := printf "$PSScriptRoot/Roles/%s.ps1" $element }}
+if (Test-Path -Path "{{ $path }}" -PathType Leaf) {
+  . "{{ $path }}"
+}
+{{ else -}}
+{{ end }}
 Invoke-Expression (& { (zoxide init powershell | Out-String) })

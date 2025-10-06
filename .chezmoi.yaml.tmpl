@@ -11,10 +11,27 @@
 #     Then run `chezmoi init` to apply changes.
 # </auto-generated>
 #-------------------------------------------------------------------------------
-{{- $profileName := promptStringOnce . "profile.name" "Give this profile a name" }}
+#chezmoi:template:line-endings=crlf
+{{- $allRoles := list "Personal" "Work" "Client" -}}
+{{- $roles := promptMultichoiceOnce . "roles" "What roles will this machine perform" $allRoles -}}
 {{- $email := promptStringOnce . "git.email" "What is your email address" }}
 {{- $gpgSigningKey := promptStringOnce . "git.gpgSigningKey" "Enter the GNUPG key id to be used for signing git commits" }}
 ---
+encryption: age
+age:
+  identities:
+{{- if has "Personal" $roles }}
+    - ~\.local\share\age\personal.age.key
+    - ~\.local\share\age\work.age.key
+    - ~\.local\share\age\client.age.key
+{{- end }}
+{{- if has "Work" $roles }}
+    - ~\.local\share\age\work.age.key
+{{- end }}
+{{- if has "Client" $roles }}
+    - ~\.local\share\age\client.age.key
+{{- end }}
+
 cd:
   command: pwsh
   args: -NoLogo
@@ -24,15 +41,16 @@ interpreters:
     command: "pwsh"
     args: -NoLogo
 
-data:
-  profile:
-    name: {{ $profileName }}
-  git:
-    email: {{ $email }}
-    gpgSigningKey: {{ $gpgSigningKey }}
+{{- $dataGit := dict "git" (dict "email" $email "gpgSigningKey" $gpgSigningKey) }}
+{{- $data := dict "data" $dataGit }}
+{{- $_ := set $data.data "roles" $roles }}
 
+{{ $data | toYaml }}
 diff:
   command: "difft"
+edit:
+  command: "notepad4"
+
 merge:
   command: C:\Program Files\Beyond Compare 5\BComp.exe
   args:
@@ -40,4 +58,3 @@ merge:
     - '{{ "{{ .Source }}" }}'
     - '{{ "{{ .Target }}" }}'
     - '{{ "{{ .Source }}" }}'
-

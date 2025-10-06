@@ -9,6 +9,7 @@
 
 # Allow the project configuration files
 !.gitignore
+!.gitattributes
 !UNLICENSE
 !README.md
 !.editorconfig
@@ -19,6 +20,8 @@
 
 # Allow template files anywhere
 !*.tmpl
+# Allow encrypted template files
+!*.tmpl.age
 
 # Allow image files anywhere
 !*.png
