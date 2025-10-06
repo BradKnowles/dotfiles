@@ -1,0 +1,53 @@
+{{ template "Header.tmpl" . }}
+Set-Alias -Name msbuild -Value (vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe)
+
+Function Remove-BuildArtifacts {
+	[Alias("rba")]
+	Param(
+		[switch]$IncludePublish,
+		[switch]$IncludePackages,
+		[switch]$IncludeNodeModules
+	)
+
+	$fdArgs = @('--type', 'dir', '--unrestricted')
+	$globPattern = 'bin,obj'
+	if ($IncludePublish) {
+			$globPattern += ",publish"
+	}
+
+	if ($IncludePackages) {
+			$globPattern += ",packages"
+	}
+
+	if ($IncludeNodeModules) {
+			$globPattern += ",node_modules"
+	}
+	$fdArgs += @('--glob', "{$globPattern}")
+	$directoriesToDelete = fd @fdArgs
+
+	if ($directoriesToDelete.Count -eq 0) {
+		Write-Host $(frt('No directories found to delete.'))
+		return
+	}
+
+	Write-Host $(frt("The following directories will be deleted:`n"))
+	$directoriesToDelete | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+	Write-Host "`n$(frt('Total:')) $(fvl($($directoriesToDelete.Count))) $(frt('directories'))"
+
+	$confirmation = Read-Host "Do you want to proceed? (y//N)"
+	if ($confirmation -ne 'y' -and $confirmation -ne 'Y') {
+		Write-Host $(fca('Operation cancelled.'))
+		return
+	}
+
+	$directoriesToDelete | ForEach-Object {
+		Write-Host "$(frt('Removing')) $(fvl($_))"
+		Remove-Item -Path $_ -Recurse -Force
+	}
+}
+
+#Function Initialize-DotNetRepo {
+#	# https://gist.github.com/davidfowl/ed7564297c61fe9ab814
+#	New-Item -ItemType Directory -Path artifacts, build, docs, lib, packages, samples, src, tests
+#	New-Item -ItemType File .editorconfig, .gitignore, .gitattributes, build.cmd, build.sh, LICENSE, NuGet.config, README.md
+#}

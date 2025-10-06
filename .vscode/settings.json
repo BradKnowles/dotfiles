@@ -10,10 +10,11 @@
 		"Aliases",
 		"AWS",
 		"Chezmoi",
+		".NET",
 		"Git",
 		"PowerShell",
 		"Starship",
 		"VSCode",
-		"WindowsTerminal",
+		"WindowsTerminal"
 	],
 }

@@ -10,17 +10,6 @@ Function Format-ResultText() {
 	"$($PSStyle.Foreground.Yellow)$Text$($PSStyle.Reset)"
 }
 
-Function Format-Sucess() {
-	[CmdletBinding()]
-	[Alias("fs")]
-	Param(
-		[string]$Text
-	)
-
-	# Actually Green
-	"$($PSStyle.Foreground.BrightGreen)$Text$($PSStyle.Reset)"
-}
-
 Function Format-Variable() {
 	[CmdletBinding()]
 	[Alias("fvr")]
@@ -41,4 +30,25 @@ Function Format-Value() {
 
 	# Actually Blue
 	"$($PSStyle.Foreground.BrightBlue)$Text$($PSStyle.Reset)"
+}
+
+Function Format-Sucess() {
+	[CmdletBinding()]
+	[Alias("fs")]
+	Param(
+		[string]$Text
+	)
+
+	# Actually Green
+	"$($PSStyle.Foreground.BrightGreen)$Text$($PSStyle.Reset)"
+}
+
+Function Format-Cancelled() {
+	[CmdletBinding()]
+	[Alias("fca")]
+	Param(
+		[string]$Text
+	)
+	# Actually Grey
+	"$($PSStyle.Foreground.BrightBlack)$Text$($PSStyle.Reset)"
 }
