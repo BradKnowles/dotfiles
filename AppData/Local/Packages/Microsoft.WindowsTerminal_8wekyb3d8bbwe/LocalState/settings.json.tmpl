@@ -31,7 +31,7 @@
         "defaults": 
         {
             "colorScheme": "Campbell Half Dark",
-            "cursorShape": "filledBox",
+            "cursorShape": "vintage",
             "font": 
             {
                 "face": "NotoSansM Nerd Font Mono",
@@ -43,13 +43,14 @@
         "list": 
         [
             {
-                "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
                 "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
                 "hidden": true,
                 "name": "Windows PowerShell"
             },
             {
-                "commandline": "%SystemRoot%\\System32\\cmd.exe",
+                "backgroundImage": "%LOCALAPPDATA%\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\images\\iconfinder_Terminal_51893.png",
+                "backgroundImageAlignment": "bottomRight",
+                "backgroundImageStretchMode": "none",
                 "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
                 "hidden": true,
                 "name": "Command Prompt"
@@ -70,8 +71,12 @@
                 "source": "Windows.Terminal.Wsl"
             },
             {
+                "backgroundImage": "%LOCALAPPDATA%\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\images\\cof_orange_hex.png",
+                "backgroundImageAlignment": "bottomRight",
+                "backgroundImageStretchMode": "none",
                 "guid": "{963ff2f7-6aed-5ce3-9d91-90d99571f53a}",
-                "hidden": true,
+                "hidden": false,
+                "icon": "%LOCALAPPDATA%\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\images\\ubuntu-32x32.png",
                 "name": "Ubuntu-24.04",
                 "source": "Windows.Terminal.Wsl"
             },
@@ -88,15 +93,9 @@
                 "source": "Windows.Terminal.Wsl"
             },
             {
-                "guid": "{b453ae62-4e3d-5e58-b989-0a998ec441b8}",
-                "hidden": true,
-                "name": "Azure Cloud Shell",
-                "source": "Windows.Terminal.Azure"
-            },
-            {
                 "guid": "{24daa7aa-fa85-555d-a7c5-4d87a1b2b01e}",
-                "hidden": true,
-                "name": "Developer Command Prompt for VS 2022",
+                "hidden": false,
+                "name": "Command Prompt for VS 2022",
                 "source": "Windows.Terminal.VisualStudio"
             },
             {
@@ -106,7 +105,7 @@
                 "guid": "{c3a06486-e578-5c4d-a309-11804df7c490}",
                 "hidden": false,
                 "icon": "ms-appx:///ProfileIcons/vs-pwsh.png",
-                "name": "Developer PowerShell for VS 2022",
+                "name": "PowerShell for VS 2022",
                 "source": "Windows.Terminal.VisualStudio"
             },
             {
@@ -114,17 +113,6 @@
                 "hidden": true,
                 "name": "Visual Studio Debug Console",
                 "source": "VSDebugConsole"
-            },
-            {
-                "backgroundImage": "%LOCALAPPDATA%\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\images\\cof_orange_hex.png",
-                "backgroundImageAlignment": "bottomRight",
-                "backgroundImageStretchMode": "none",
-                "guid": "{d8e96812-b789-5068-a5ae-10b2fb53e95f}",
-                "hidden": false,
-                "icon": "ms-appx:///ProfileIcons/{9acb9455-ca41-5af7-950f-6bca1bc9722f}.png",
-                "name": "Ubuntu 24.04.1 LTS",
-                "pathTranslationStyle": "wsl",
-                "source": "CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc"
             },
             {
                 "guid": "{51855cb2-8cce-5362-8f54-464b92b32386}",
@@ -160,5 +148,6 @@
             "yellow": "#C19C00"
         }
     ],
-    "themes": []
+    "themes": [],
+    "useAcrylicInTabRow": true
 }
