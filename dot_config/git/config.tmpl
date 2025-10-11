@@ -1,3 +1,4 @@
+{{ template "Header.tmpl" . }}
 [user]
 	name = "Brad Knowles"
 	email = {{ .git.email | quote }}
@@ -22,8 +23,14 @@
 [difftool]
 	prompt = false
 
+[fetch]
+	prune = true
+
 [gpg]
 	program = {{ lookPath "gpg" | quote }}
+
+[http]
+	sslbackend = schannel
 
 [init]
 	defaultBranch = main
@@ -37,24 +44,29 @@
 [mergetool]
 	keepBackup = false
 
-[fetch]
-	prune = true
 [pull]
 	rebase = true
 [push]
 	autoSetupRemote = true
 	default = simple
 	followTags = true
+
 [rebase]
 	autoStash = false
 	autoSquash = false
-	updateRefs = false
+	updateRefs = true
+[rerere]
+	enabled = true
+
+[stash]
+	showIncludeUntracked = true
 
 [alias]
 	a = add --verbose
 	aa = add --all --verbose
 	af = add --force --verbose
 	ai = add --interactive
+	ap = add --patch
 	au = add --update --verbose
 
 	b = branch
@@ -63,6 +75,9 @@
 	cm = commit
 	cma = commit --amend
 	cmm = commit --message
+
+	deltags = !read -p \"Are you sure you want to delete all tags? [y/N] \" confirm && [[ $confirm == \"y\" ]] && git tag -l | xargs git tag -d || echo \"Operation cancelled\"
+	delrtags = !read -p \"Are you sure you want to delete all tags on the remote? [y/N] \" confirm && [[ $confirm == \"y\" ]] && git tag -l | xargs git push --delete origin || echo \"Operation cancelled\"
 
 	dc = checkout --
 	# `git diff` with difftastic.
@@ -89,6 +104,9 @@
 	mnff = merge --no-ff
 	mpr = merge --no-ff --no-commit
 
+	p = push
+	pl = pull
+
 	rb = rebase
 	rba = rebase --abort
 	rbc = rebase --continue
@@ -97,13 +115,22 @@
 	rva = revert --abort
 	rvc = revert --continue
 
-	s = status --untracked-file --short --branch
+	s = status --branch --short --untracked-files=all
 	sw = switch
 	swc = switch --create
 	swm = switch main
+
+	stc = !read -p \"Are you sure you want to clear all stashes? [y/N] \" confirm && [[ $confirm == \"y\" ]] && git stash clear || echo \"Operation cancelled\"
 	stl = stash list --format='%gd (%ad): %gs'
 	sts = "!f() { git show stash@{$1} --name-status; }; f"
+	sts = "!f() { git stash show stash@{$1}; }; f"
+	std = "!f() { git -c diff.external=difft stash show -p stash@{$1} --ext-diff; }; f"
 
-	tl = show-ref --tags
+	tl = tag --list --format="%(color:yellow)%(objectname:short)%(color:reset)%09%(color:brightgreen)%(refname:strip=2)%(color:reset)%09%(contents:subject)"
 
 	us = reset HEAD
+
+	wt = worktree
+	wtl = worktree list
+	wtr = worktree remove
+	wta = worktree add
