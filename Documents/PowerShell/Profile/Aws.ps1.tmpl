@@ -234,7 +234,7 @@ Function Write-AwsCredentialFile {
 		[Parameter(Mandatory=$true)]
 		$InputObject
 	)
-	Out-IniFile -InputObject $InputObject -FilePath $(Get-AwsCredentialFile) -Force
+	Export-IniFile -InputObject $InputObject -FilePath $(Get-AwsCredentialFile) -Force
 }
 
 Function Add-AwsProfile() {
