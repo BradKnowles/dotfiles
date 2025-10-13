@@ -21,3 +21,9 @@ tag_disabled = false
 [time]
 disabled = false
 format = '🕙[ $time ]($style)'
+{{ if has "Work" .roles }}
+{{- $workTarget := joinPath .chezmoi.homeDir ".config/starship-work.toml" }}
+### Included from {{ $workTarget }}
+{{ joinPath .chezmoi.sourceDir "dot_config/encrypted_starship-work.toml.tmpl.age" | include | decrypt }}
+### End {{ $workTarget }}
+{{ end -}}
