@@ -21,7 +21,7 @@
 
 . "$PSScriptRoot/Profile/ShellCompletions.ps1"
 {{ range $index, $element := .roles }}
-{{- $path := printf "$PSScriptRoot/Roles/%s.ps1" $element }}
+{{- $path := printf "$PSScriptRoot/Profile/Roles/%s.ps1" $element }}
 if (Test-Path -Path "{{ $path }}" -PathType Leaf) {
   . "{{ $path }}"
 }
