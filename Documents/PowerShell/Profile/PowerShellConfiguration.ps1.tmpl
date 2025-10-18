@@ -6,7 +6,7 @@ $PSReadLineOptions = @{
       if ($line.Length -le 3) {
         return $false
       }
-      if (@("exit","cd ..","codium .", "code .").Contains($line.ToLowerInvariant())) {
+      if (@("exit","cd ..", "code .").Contains($line, 'InvariantCultureIgnoreCase')) {
         return $false
       }
       return $true
