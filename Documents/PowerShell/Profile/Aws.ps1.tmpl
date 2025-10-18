@@ -72,6 +72,49 @@ Function Clear-AwsProfile() {
 	Clear-AWSDefaultConfiguration -SkipProfileStore -Scope Global
 }
 
+Function Remove-AwsProfile() {
+	[CmdletBinding()]
+	[Alias("rap")]
+	Param()
+
+	$profiles = Get-AWSCredential -ListProfileDetail | Where-Object { $_.StoreTypeName -eq 'SharedCredentialsFile' } | Select-Object -ExpandProperty ProfileName
+			$fzfOptions = @('--height', '~100%',
+			'--layout','reverse',
+			'--ansi',
+			'--border', 'rounded',
+			'--multi', '--accept-nth=1',
+			'--header', "Select Profile(s) to Remove`nTAB: Select Profile; CTRL-A:Select all; CTRL-D:Deselect all; ESC: Abort",
+			'--header-border','rounded'
+			'--bind', 'ctrl-a:select-all,ctrl-d:deselect-all'
+		)
+
+		$profilesToRemove = $profiles | fzf $fzfOptions
+		if (($profiles | Measure-Object).Count -eq 0) {
+			Write-Host "$(frt('No profiles selected, nothing to remove.'))"
+			return
+		}
+
+		$backupDate = $(Get-Date).ToString("yyyyMMdd_Hmmss")
+		$backupDestination = "$(Get-AwsCredentialFile | Split-Path -Parent)\backup"
+
+		if (-not (Test-Path -Path $backupDestination -PathType Container)) {
+			New-Item -ItemType Directory $backupDestination | Out-Null
+		}
+		Copy-Item -Path (Get-AwsCredentialFile) -Destination "$backupDestination\credentials-$backupDate"
+		Copy-Item -Path (Get-AwsConfigFile) -Destination "$backupDestination\config-$backupDate"
+
+		$credentials = Read-AwsCredentialFile
+		$config = Read-AwsConfigFile
+		$profilesToRemove | ForEach-Object {
+			Write-Host "$(frt('Removing')) $(fvr($_))$(frt('...'))"
+			$credentials.Remove($_)
+			$config.Remove("profile $_"	)
+		}
+		Write-AwsCredentialFile -InputObject $credentials
+		Write-AwsConfigFile -InputObject $config
+		Write-Host "$(fs('done.'))"
+}
+
 Function Connect-AwsAccount() {
 	[CmdletBinding()]
 	[Alias("ccaws")]
@@ -235,8 +278,16 @@ Function Get-AwsCredentialFile() {
 	"$Env:USERPROFILE\.aws\credentials"
 }
 
+Function Get-AwsConfigFile() {
+	"$Env:USERPROFILE\.aws\config"
+}
+
 Function Read-AwsCredentialFile() {
 	Import-Ini -Path $(Get-AwsCredentialFile)
+}
+
+Function Read-AwsConfigFile() {
+	Import-Ini -Path $(Get-AwsConfigFile)
 }
 
 Function Write-AwsCredentialFile {
@@ -245,6 +296,14 @@ Function Write-AwsCredentialFile {
 		$InputObject
 	)
 	Export-Ini -InputObject $InputObject -FilePath $(Get-AwsCredentialFile) -Force
+}
+
+Function Write-AwsConfigFile {
+	Param(
+		[Parameter(Mandatory=$true)]
+		$InputObject
+	)
+	Export-Ini -InputObject $InputObject -FilePath $(Get-AwsConfigFile) -Force
 }
 
 Function Test-JsonData {
