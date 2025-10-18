@@ -89,7 +89,7 @@ Function Remove-AwsProfile() {
 		)
 
 		$profilesToRemove = $profiles | fzf $fzfOptions
-		if (($profiles | Measure-Object).Count -eq 0) {
+		if (($profilesToRemove | Measure-Object).Count -eq 0) {
 			Write-Host "$(frt('No profiles selected, nothing to remove.'))"
 			return
 		}
@@ -108,7 +108,7 @@ Function Remove-AwsProfile() {
 		$profilesToRemove | ForEach-Object {
 			Write-Host "$(frt('Removing')) $(fvr($_))$(frt('...'))"
 			$credentials.Remove($_)
-			$config.Remove("profile $_"	)
+			$config.Remove("profile $_")
 		}
 		Write-AwsCredentialFile -InputObject $credentials
 		Write-AwsConfigFile -InputObject $config
