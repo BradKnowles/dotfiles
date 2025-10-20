@@ -1,2 +1,9 @@
 {{ template "Header.tmpl" . }}
-{{ completion "powershell" }};Register-ArgumentCompleter -CommandName 'cm' -ScriptBlock ${__chezmoiCompleterBlock}
+{{ completion "powershell" -}}
+Register-ArgumentCompleter -CommandName 'cm' -ScriptBlock ${__chezmoiCompleterBlock}
+
+# Register an argument completer for g (aliased to git) for git-completions
+Register-ArgumentCompleter -CommandName g -Native -ScriptBlock {
+    param($wordToComplete, $CommandAst, $CursorPosition)
+    return (Complete-Git -CommandAst $CommandAst -CursorPosition $CursorPosition)
+}
