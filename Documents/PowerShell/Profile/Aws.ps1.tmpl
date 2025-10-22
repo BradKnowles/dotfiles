@@ -117,7 +117,7 @@ Function Remove-AwsProfile() {
 
 Function Connect-AwsAccount() {
 	[CmdletBinding()]
-	[Alias("ccaws")]
+	[Alias("cnaws")]
 	Param()
 
 	$profileName = $Env:AWS_PROFILE
@@ -471,7 +471,7 @@ Function Get-AwsCache {
 }
 
 function Connect-AwsSsmPort {
-	[Alias('cssmp')]
+	[Alias('cnssmp')]
 	Param(
 		[Parameter()]
 		$InstanceName,
