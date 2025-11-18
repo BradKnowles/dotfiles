@@ -1,7 +1,9 @@
 {{ template "Header.tmpl" . }}
 function Open-GitUrl {
 	[Alias("opgu")]
-	Param()
+	Param(
+		[string]$CommitId
+	)
 
 	$url = git ls-remote --get-url 2>nul
 	if ($null -eq $url) {
@@ -9,10 +11,15 @@ function Open-GitUrl {
 	} else {
 		$url = $url -replace 'git@ssh\.([^:]+):(.*)\.git', 'https://$1/$2'
 		$url = $url -replace 'git@(.*?):(.*)\.git', 'https://$1/$2'
+		$url = $url -replace '\.git$', ''
+		if ($CommitId) {
+			$url = "$url/tree/$CommitId"
+		}
 		Write-Host "$(frt('Opening')) $(fvl($url))"
 		Start-Process $url
 	}
 }
+
 
 Function Set-LocationGitRoot {
 	[CmdletBinding()]
@@ -88,14 +95,16 @@ function Get-LocalGitBranchesWithDeletedRemotes {
 	$format = @("%(color:brightgreen)%(refname:short)%(color:reset)",
 		"%(color:brightred)%(upstream:short)%(color:reset)",
 		"%(color:yellow)%(objectname:short)%(color:reset)",
-		"%(contents:subject):%(upstream)")
+		"%(contents:subject)|%(upstream)")
 
 	$localBranches=git for-each-ref refs/heads/ --color=always --format=$format |
 		ForEach-Object {
-			$branches = $_ -split ':'
+			$parts = $_ -split '\|', 2
+			$displayInfo = $parts[0]
+			$upstream = if ($parts.Length -gt 1) { $parts[1] } else { '' }
 			[PSCustomObject]@{
-				Local = $branches[0]
-				Remote = $branches[1] -replace ".*refs/(remotes/origin)/(.+?)(\^{})?$", '$2'
+				Local = $displayInfo
+				Remote = $upstream -replace "^refs/remotes/origin/(.+?)$", '$1'
 			}
 		}
 
@@ -111,7 +120,9 @@ function Get-LocalGitBranchesWithDeletedRemotes {
 function Remove-LocalGitBranchesWithDeletedRemotes {
 	[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
 	[Alias("rbdr")]
-	Param()
+	Param(
+		[Switch]$IncludeUnmerged
+	)
 
 	$remoteBranches = (git ls-remote --branches --quiet) -replace ".*refs/(heads)/(.+?)(\^{})?$", '$2' |
 		ForEach-Object {
@@ -121,12 +132,12 @@ function Remove-LocalGitBranchesWithDeletedRemotes {
 			}
 		}
 
-	$localBranches=git for-each-ref refs/heads/ --format='%(refname:short):%(upstream)' |
+	$localBranches=git for-each-ref refs/heads/ --format='%(refname:short)|%(upstream)' |
 		ForEach-Object {
-			$branches = $_ -split ':'
+			$parts = $_ -split '\|', 2
 			[PSCustomObject]@{
-				Local = $branches[0]
-				Remote = $branches[1] -replace ".*refs/(remotes/origin)/(.+?)(\^{})?$", '$2'
+				Local = $parts[0]
+				Remote = if ($parts.Length -gt 1) { $parts[1] -replace "^refs/remotes/origin/(.+?)$", '$1' } else { '' }
 			}
 		}
 
@@ -138,9 +149,17 @@ function Remove-LocalGitBranchesWithDeletedRemotes {
 		git remote update --prune
 	}
 
+	$command = 'git'
+	$subcommand = 'branch'
+	$deleteArgs = @('--delete')
+	if ($IncludeUnmerged) {
+		$deleteArgs += '--force'
+	}
+	$operation = "$command $subcommand $($deleteArgs -join ' ')"
+
 	$localBranchesToDelete | ForEach-Object {
-		if ($PSCmdlet.ShouldProcess("$($_.Local)", 'git branch --delete')) {
-			git branch --delete $_.Local
+		if ($PSCmdlet.ShouldProcess("$($_.Local)", $operation)) {
+			& $command $subcommand $deleteArgs $_.Local
 		}
 	}
 }

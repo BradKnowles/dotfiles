@@ -11,3 +11,7 @@ Documents/PowerShell/Profile/Roles/Work.ps1
 Documents/PowerShell/Profile/Roles/Client.ps1
 {{- end }}
 {{- end }}
+
+{{- if not (has "Work" .roles) }}
+.config/starship-work.toml
+{{- end }}

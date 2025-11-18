@@ -1,16 +1,16 @@
 {{ template "Header.tmpl" . }}
 $PSReadLineOptions = @{
-    HistoryNoDuplicates = $true
-    AddToHistoryHandler = {
-      Param([string]$line)
-      if ($line.Length -le 3) {
-        return $false
-      }
-      if (@("exit","cd ..", "code .").Contains($line, 'InvariantCultureIgnoreCase')) {
-        return $false
-      }
-      return $true
-    }
+	HistoryNoDuplicates = $true
+	AddToHistoryHandler = {
+		Param([string]$line)
+		if ($line.Length -le 3) {
+			return $false
+		}
+		if (@("exit","cd ..", "code .") -contains $line) {
+			return $false
+		}
+		return $true
+	}
 }
 Set-PSReadLineOption @PSReadLineOptions
 
