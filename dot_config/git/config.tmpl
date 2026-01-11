@@ -126,7 +126,7 @@
 	sts = "!f() { git stash show stash@{$1}; }; f"
 	std = "!f() { git -c diff.external=difft stash show -p stash@{$1} --ext-diff; }; f"
 
-	tl = tag --list --format="%(color:yellow)%(objectname:short)%(color:reset)%09%(color:brightgreen)%(refname:strip=2)%(color:reset)%09%(contents:subject)"
+	tl = tag --list --format=%(color:yellow)%(if)%(*objectname)%(then)%(*objectname:short)%(else)%(objectname:short)%(end)%(color:reset)%09%(color:brightgreen)%(refname:strip=2)%(color:reset)%09%(contents:subject)
 
 	us = reset HEAD
 
