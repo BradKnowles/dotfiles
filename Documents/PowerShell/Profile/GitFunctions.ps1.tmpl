@@ -9,6 +9,8 @@ function Open-GitUrl {
 	} else {
 		$url = $url -replace 'git@ssh\.([^:]+):(.*)\.git', 'https://$1/$2'
 		$url = $url -replace 'git@(.*?):(.*)\.git', 'https://$1/$2'
+		$url = $url -replace '\.git$', ''
+
 		Write-Host "$(frt('Opening')) $(fvl($url))"
 		Start-Process $url
 	}
