@@ -1,0 +1,22 @@
+{{ template "Header.tmpl" . }}
+function Get-AdUserPasswordExpiration {
+	Param(
+		[Parameter(Mandatory = $true)]
+		[PSCustomObject[]]$Users
+	)
+
+	$PasswordExpirationExpression = @{
+		Name = "Password Expiration"
+		Expression = {[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}
+	}
+	$SelectProperties = @{Property="DisplayName",$PasswordExpirationExpression}
+
+	$Users | ForEach-Object {
+		$AdUserProperties = @{
+			Identity = $_.Identity
+			Server = $_.Server ?? $env:USERDNSDOMAIN
+			Properties="DisplayName","msDS-UserPasswordExpiryTimeComputed"
+		}
+		Get-ADUser @AdUserProperties | Select-Object @SelectProperties
+	}
+}
