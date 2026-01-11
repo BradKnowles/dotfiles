@@ -48,11 +48,13 @@ Function Set-AwsRegion() {
 
 	# Set region for CLI
 	$Env:AWS_REGION = $Region
+	$Env:AWS_DEFAULT_REGION = $Region
 
 	# Set region for PowerShell Tools
 	Set-DefaultAWSRegion -Region $Region -Scope Global
 
 	Write-Host "$(frt('Updated')) $(fvr('AWS_REGION')) $(frt('from')) $(fvl($PreviousRegion)) $(frt('to')) $(fvl($Region))"
+	Write-Host "$(frt('Updated')) $(fvr('AWS_DEFAULT_REGION')) $(frt('from')) $(fvl($PreviousRegion)) $(frt('to')) $(fvl($Region))"
 }
 
 Function Clear-AwsProfile() {
