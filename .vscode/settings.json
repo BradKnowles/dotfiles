@@ -15,6 +15,7 @@
 		"PowerShell",
 		"Starship",
 		"VSCode",
-		"WindowsTerminal"
+		"WindowsTerminal",
+		"Roles"
 	],
 }
