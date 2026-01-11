@@ -1,7 +1,13 @@
 {{ template "Header.tmpl" . }}
 function Open-GitUrl {
 	[Alias("opgu")]
-	Param()
+	Param(
+		[Parameter(ParameterSetName = "Current")]
+		[switch]$CurrentCommit,
+
+		[Parameter(ParameterSetName = "CommitId")]
+		[string]$CommitId
+	)
 
 	$url = git ls-remote --get-url 2>nul
 	if ($null -eq $url) {
@@ -10,6 +16,14 @@ function Open-GitUrl {
 		$url = $url -replace 'git@ssh\.([^:]+):(.*)\.git', 'https://$1/$2'
 		$url = $url -replace 'git@(.*?):(.*)\.git', 'https://$1/$2'
 		$url = $url -replace '\.git$', ''
+
+		if ($CurrentCommit) {
+			$CommitId = git rev-parse HEAD
+		}
+
+		if ($CommitId) {
+			$url = "$url/tree/$CommitId"
+		}
 
 		Write-Host "$(frt('Opening')) $(fvl($url))"
 		Start-Process $url
