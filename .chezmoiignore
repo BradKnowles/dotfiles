@@ -6,6 +6,7 @@ temp
 Documents/PowerShell/Profile/Roles/Personal.ps1
 {{- if not (has "Work" .roles) }}
 Documents/PowerShell/Profile/Roles/Work.ps1
+.config/starship-work.toml
 {{- end }}
 {{- if not (has "Client" .roles) }}
 Documents/PowerShell/Profile/Roles/Client.ps1
