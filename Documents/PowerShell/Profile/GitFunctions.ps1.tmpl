@@ -104,14 +104,16 @@ function Get-LocalGitBranchesWithDeletedRemotes {
 	$format = @("%(color:brightgreen)%(refname:short)%(color:reset)",
 		"%(color:brightred)%(upstream:short)%(color:reset)",
 		"%(color:yellow)%(objectname:short)%(color:reset)",
-		"%(contents:subject):%(upstream)")
+		"%(contents:subject)|%(upstream)")
 
 	$localBranches=git for-each-ref refs/heads/ --color=always --format=$format |
 		ForEach-Object {
-			$branches = $_ -split ':'
+			$parts = $_ -split '\|', 2
+			$displayInfo = $parts[0]
+			$upstream = if ($parts.Length -gt 1) { $parts[1] } else { '' }
 			[PSCustomObject]@{
-				Local = $branches[0]
-				Remote = $branches[1] -replace ".*refs/(remotes/origin)/(.+?)(\^{})?$", '$2'
+				Local = $displayInfo
+				Remote = $upstream -replace "^refs/remotes/origin/(.+?)$", '$1'
 			}
 		}
 
@@ -137,12 +139,12 @@ function Remove-LocalGitBranchesWithDeletedRemotes {
 			}
 		}
 
-	$localBranches=git for-each-ref refs/heads/ --format='%(refname:short):%(upstream)' |
+	$localBranches=git for-each-ref refs/heads/ --format='%(refname:short)|%(upstream)' |
 		ForEach-Object {
-			$branches = $_ -split ':'
+			$parts = $_ -split '\|', 2
 			[PSCustomObject]@{
-				Local = $branches[0]
-				Remote = $branches[1] -replace ".*refs/(remotes/origin)/(.+?)(\^{})?$", '$2'
+				Local = $parts[0]
+				Remote = if ($parts.Length -gt 1) { $parts[1] -replace "^refs/remotes/origin/(.+?)$", '$1' } else { '' }
 			}
 		}
 
