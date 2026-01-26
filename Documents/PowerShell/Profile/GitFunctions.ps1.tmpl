@@ -129,7 +129,9 @@ function Get-LocalGitBranchesWithDeletedRemotes {
 function Remove-LocalGitBranchesWithDeletedRemotes {
 	[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
 	[Alias("rbdr")]
-	Param()
+	Param(
+		[Switch]$IncludeUnmerged
+	)
 
 	$remoteBranches = (git ls-remote --branches --quiet) -replace ".*refs/(heads)/(.+?)(\^{})?$", '$2' |
 		ForEach-Object {
@@ -156,9 +158,17 @@ function Remove-LocalGitBranchesWithDeletedRemotes {
 		git remote update --prune
 	}
 
+	$command = 'git'
+	$subcommand = 'branch'
+	$deleteArgs = @('--delete')
+	if ($IncludeUnmerged) {
+		$deleteArgs += '--force'
+	}
+	$operation = "$command $subcommand $($deleteArgs -join ' ')"
+
 	$localBranchesToDelete | ForEach-Object {
-		if ($PSCmdlet.ShouldProcess("$($_.Local)", 'git branch --delete')) {
-			git branch --delete $_.Local
+		if ($PSCmdlet.ShouldProcess("$($_.Local)", $operation)) {
+			& $command $subcommand $deleteArgs $_.Local
 		}
 	}
 }
