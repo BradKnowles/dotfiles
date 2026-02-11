@@ -1,4 +1,7 @@
 {{ template "Header.tmpl" . }}
+
+$ExcludedHistoryCommands = @("exit", "cd ..", "code .")
+
 $PSReadLineOptions = @{
 	HistoryNoDuplicates = $true
 	AddToHistoryHandler = {
@@ -6,7 +9,7 @@ $PSReadLineOptions = @{
 		if ($line.Length -le 3) {
 			return $false
 		}
-		if (@("exit","cd ..", "code .").Contains($line, 'InvariantCultureIgnoreCase')) {
+		if ($ExcludedHistoryCommands -contains $line) {
 			return $false
 		}
 		return $true
