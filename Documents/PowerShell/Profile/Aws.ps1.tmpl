@@ -120,10 +120,22 @@ Function Remove-AwsProfile() {
 Function Connect-AwsAccount() {
 	[CmdletBinding()]
 	[Alias("cnaws")]
-	Param()
+	Param(
+		[Parameter(Mandatory=$false)]
+		[string]$ProfileName
+	)
 
-	$profileName = $Env:AWS_PROFILE
-	if ([String]::IsNullOrWhiteSpace($profileName)) {
+	If ([String]::IsNullOrWhiteSpace($ProfileName)) {
+		Write-Debug "No ProfileName provided, using current AWS_PROFILE: '$Env:AWS_PROFILE'"
+		$ProfileName = $Env:AWS_PROFILE
+	} else {
+		Write-Debug "ProfileName was provided"
+		if ($Env:AWS_PROFILE -ne $ProfileName) {
+			Write-Debug "Setting profile to: $ProfileName"
+			Set-AwsProfile -ProfileName $ProfileName
+		}
+	}
+	if ([String]::IsNullOrWhiteSpace($ProfileName)) {
 		Write-Error "AWS_PROFILE is empty, use Set-AwsProfile -Profile PROFILE_NAME to activate a profile."
 		Return
 	}
