@@ -21,9 +21,15 @@ heuristic = false
 only_detached = false
 tag_disabled = false
 
+[pijul_channel]
+disabled = true
+
 [time]
 disabled = false
 format = '🕙[ $time ]($style)'
+
+[username]
+disabled = true
 {{ if has "Work" .roles }}
 {{- $workTarget := joinPath .chezmoi.homeDir ".config/starship-work.toml" }}
 ### Included from {{ $workTarget }}
