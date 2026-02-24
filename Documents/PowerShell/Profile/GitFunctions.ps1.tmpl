@@ -1,5 +1,6 @@
 {{ template "Header.tmpl" . }}
 function Open-GitUrl {
+	[CmdletBinding(DefaultParameterSetName = "None")]
 	[Alias("opgu")]
 	Param(
 		[Parameter(ParameterSetName = "Current")]
