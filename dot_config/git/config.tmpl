@@ -53,7 +53,7 @@
 	followTags = true
 
 [rebase]
-	autoStash = false
+	autoStash = true
 	autoSquash = false
 	updateRefs = true
 [rerere]
@@ -71,8 +71,15 @@
 	au = add --update --verbose
 
 	b = branch
+	bdi = "!git branch | sed \"s/^[* ]*//\" | fzf --height=~100% --layout=reverse --border=rounded --multi --header='Delete Branch(es)\nTAB: Select; CTRL-D: Deselect all; ESC: Abort' --header-border=rounded --bind=ctrl-d:deselect-all | xargs -r git branch -d"
 
-	cl = clean -dn
+	clu = clean -dn
+	cli = clean -dXn
+	cla = clean -dnx
+	cluf = !git clean -dn && read -p \"Are you sure you want to clean untracked files? [y/N] \" confirm && [[ $confirm == \"y\" ]] && git clean -df || echo \"Operation cancelled\"
+	clif = !git clean -dXn && read -p \"Are you sure you want to clean ignored files? [y/N] \" confirm && [[ $confirm == \"y\" ]] && git clean -dXf || echo \"Operation cancelled\"
+	claf = !git clean -dxn && read -p \"Are you sure you want to clean untracked AND ignored files? [y/N] \" confirm && [[ $confirm == \"y\" ]] && git clean -dxf || echo \"Operation cancelled\"
+
 	cm = commit
 	cma = commit --amend
 	cmm = commit --message
@@ -99,6 +106,7 @@
 	lns = log --name-status
 	log = log --show-signature
 	lol = log --oneline
+	lolm = log --oneline main..HEAD
 
 	ma = merge --abort
 	mt = mergetool
@@ -119,12 +127,14 @@
 	s = status --branch --short --untracked-files=all
 	sw = switch
 	swc = switch --create
+	swi = !git branch | fzf --height=40% --reverse --border --prompt=\"Switch to branch: \" | xargs -r git switch
+	swir = !git branch -r | grep -v HEAD | sed \"s|origin/||\" | fzf --height=40% --reverse --border --prompt=\"Switch to remote branch: \" | xargs -r git switch
 	swm = switch main
 
 	stc = !read -p \"Are you sure you want to clear all stashes? [y/N] \" confirm && [[ $confirm == \"y\" ]] && git stash clear || echo \"Operation cancelled\"
 	stl = stash list --format='%gd (%ad): %gs'
 	sts = "!f() { git show stash@{$1} --name-status; }; f"
-	sts = "!f() { git stash show stash@{$1}; }; f"
+	sts2 = "!f() { git stash show stash@{$1}; }; f"
 	std = "!f() { git -c diff.external=difft stash show -p stash@{$1} --ext-diff; }; f"
 
 	tl = tag --list --format=%(color:yellow)%(if)%(*objectname)%(then)%(*objectname:short)%(else)%(objectname:short)%(end)%(color:reset)%09%(color:brightgreen)%(refname:strip=2)%(color:reset)%09%(contents:subject)
