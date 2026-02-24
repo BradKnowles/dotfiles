@@ -1,26 +1,48 @@
 {{ template "Header.tmpl" . }}
+# Cache at profile load - admin status won't change during a session
+$IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
 function Invoke-Starship-PreCommand {
+	# Sends Windows Terminal OSC escape sequences to sync the terminal with the
+	# current working directory, enabling "open new tab here" and tab duplication.
+
+	$ESC = "`e"      # Escape character (ASCII 27)
+	$BEL = "`a"      # Bell character (ASCII 7) - used as OSC terminator
+	$ST  = "$ESC\"   # String Terminator - alternative OSC terminator
+
+	# OSC 9;12 — notify Windows Terminal that the prompt has been redrawn
+	# Format: ESC ] 9 ; 12 BEL
+	$notifyPromptRedrawn = "${ESC}]9;12${BEL}"
+
+	# Only applicable when in a real filesystem location
+	$notifyCurrentDir = ""
+	$currentLocation = $executionContext.SessionState.Path.CurrentLocation
+	if ($currentLocation.Provider.Name -eq "FileSystem")
+	{
+			$currentPath = $currentLocation.ProviderPath
+			# OSC 9;9 — tell Windows Terminal the current working directory
+			# Format: ESC ] 9 ; 9 ; "path" ST
+			$notifyCurrentDir = "${ESC}]9;9;`"$currentPath`"${ST}"
+	}
+	$Host.UI.Write($notifyPromptRedrawn + $notifyCurrentDir)
+
+	# Builds the terminal window title from the current directory, prefixing an
+	# admin badge if running elevated, and appending the active AWS profile if set.
 	$icons=@{
-		Admin = "🕵🏻‍♂️"
-		Cloud = "☁️"
+		Admin = "🕵♂"
+		Cloud = "☁"
 		Directory = "📁"
 	}
-
 	$directory = Split-Path -Path $pwd -Leaf
-	$directoryTitle = "$($icons.Directory) $directory"
-	$title = $directoryTitle
+	$title = "$($icons.Directory) $directory"
 
-	$user = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
-	if ($user.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+	if ($isAdmin) {
 		$title = "$($icons.Admin) $title"
 	}
-
 	if ($Env:AWS_PROFILE) {
-		$awsTitle = "$($icons.Cloud) $Env:AWS_PROFILE"
-		$title += " $awsTitle"
+		$title += " $($icons.Cloud) $Env:AWS_PROFILE"
 	}
-
-	$host.ui.RawUI.WindowTitle = $title
+	$Host.UI.RawUI.WindowTitle = $title
 }
 
 Invoke-Expression (&starship init powershell)
