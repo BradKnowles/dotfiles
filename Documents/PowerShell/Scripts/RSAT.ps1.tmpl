@@ -1,0 +1,27 @@
+{{ template "Header.tmpl" . }}
+#Requires -RunAsAdministrator
+
+function Get-RemoteServerAdministrationTools  {
+	Param(
+		[Switch]$Installed
+	)
+	$rsat = Get-WindowsCapability -Name RSAT* -Online | Select-Object -Property Name,DisplayName,State
+
+	if ($Installed) {
+		$rsat | Where-Object { $_.State -eq 'Installed' }
+	} else {
+		$rsat
+	}
+}
+
+function Install-RemoteServerAdministrationTools {
+	$tools = @(
+		"Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0",
+		"Rsat.Dns.Tools~~~~0.0.1.0"
+	)
+
+	$tools | ForEach-Object {
+		Write-Host "$(frt('Installing')) $(fvl("$_"))"
+		Add-WindowsCapability -Name $_ -Online
+	}
+}
