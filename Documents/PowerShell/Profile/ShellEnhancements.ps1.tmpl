@@ -119,3 +119,35 @@ function Show-ApprovedVerbs {
 			}
 	}
 }
+
+# create a $Env:USERNAME\.local\share\age\ directory with chmod 700, place appropriate age file in directory
+
+
+# chmod 700 Owner Full Control - icacls "foldername" /inheritance:r /grant:r "${Env:USERNAME}:(OI)(CI)(F)"
+# chmod 700 Owner Full Control - icacls "filename" /inheritance:r /grant:r "${Env:USERNAME}:(F)"
+# chmod 600 Owner Read Write - icacls "foldername" /inheritance:r /grant:r "${Env:USERNAME}:(OI)(CI)(R,W)"
+# chmod 600 Owner Read Write - icacls "filename" /inheritance:r /grant:r "${Env:USERNAME}:(R,W)"
+# chmod 755 Owner Full Control / Group and Everyone Read & Execute /  - icacls "foldername" /inheritance:r /grant:r "${Env:USERNAME}:(OI)(CI)(F)" "Users:(OI)(CI)(RX)" "Everyone:(OI)(CI)(RX)"
+# chmod 750 Owner Full Control / Group Read & Execute /  - icacls "foldername" /inheritance:r /grant:r "${Env:USERNAME}:(OI)(CI)(F)" "Users:(OI)(CI)(RX)
+# chmod 400 Owner Read - icacls "foldername" /inheritance:r /grant:r "${Env:USERNAME}:(OI)(CI)(R)"
+# chmod 644 Owner R+W / Everyone else R
+# chmod 440 Owner R / Group R
+
+#SSH-related:
+#• ~/.ssh/ directory: 700 (drwx------)
+#• ~/.ssh/id_rsa (private keys): 600 (-rw-------)
+#• ~/.ssh/id_rsa.pub (public keys): 644 (-rw-r--r--)
+#• ~/.ssh/authorized_keys: 600 (-rw-------)
+#• ~/.ssh/config: 600 (-rw-------)
+#• ~/.ssh/known_hosts: 644 (-rw-r--r--)
+
+#Other common secure files:
+#• /etc/shadow: 640 (-rw-r-----)
+#• /etc/passwd: 644 (-rw-r--r--)
+#• /etc/sudoers: 440 (-r--r-----)
+#• User home directory: 755 (drwxr-xr-x)
+#• .bashrc, .profile: 644 (-rw-r--r--)
+#• .bash_history: 600 (-rw-------)
+
+# Test-Path -Path . -PathType Container - folder
+# Test-Path -Path . -PathType Leaf - file

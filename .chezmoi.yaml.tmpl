@@ -47,7 +47,11 @@ interpreters:
 
 {{ $data | toYaml }}
 diff:
-  command: "difft"
+  command: difft
+  # command: C:\Program Files\Beyond Compare 5\BComp.exe
+  # args:
+  #   - '{{ "{{ .Target }}" }}'
+  #   - '{{ "{{ .Destination }}" }}'
 edit:
   command: "notepad4"
 
