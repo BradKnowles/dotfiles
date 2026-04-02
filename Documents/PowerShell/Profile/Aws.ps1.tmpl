@@ -120,10 +120,22 @@ Function Remove-AwsProfile() {
 Function Connect-AwsAccount() {
 	[CmdletBinding()]
 	[Alias("cnaws")]
-	Param()
+	Param(
+		[Parameter(Mandatory=$false)]
+		[string]$ProfileName
+	)
 
-	$profileName = $Env:AWS_PROFILE
-	if ([String]::IsNullOrWhiteSpace($profileName)) {
+	If ([String]::IsNullOrWhiteSpace($ProfileName)) {
+		Write-Debug "No ProfileName provided, using current AWS_PROFILE: '$Env:AWS_PROFILE'"
+		$ProfileName = $Env:AWS_PROFILE
+	} else {
+		Write-Debug "ProfileName was provided"
+		if ($Env:AWS_PROFILE -ne $ProfileName) {
+			Write-Debug "Setting profile to: $ProfileName"
+			Set-AwsProfile -ProfileName $ProfileName
+		}
+	}
+	if ([String]::IsNullOrWhiteSpace($ProfileName)) {
 		Write-Error "AWS_PROFILE is empty, use Set-AwsProfile -Profile PROFILE_NAME to activate a profile."
 		Return
 	}
@@ -375,7 +387,7 @@ Function Get-AwsEc2Instances {
 		$instance | Add-Member -MemberType NoteProperty -Name 'Status' -Value ($statuses[$instance.InstanceId].Status ?? "N/A")
 		$instance | Add-Member -MemberType NoteProperty -Name 'SystemStatus' -Value ($statuses[$instance.InstanceId].SystemStatus ?? "N/A")
 	}
-	$instances | Format-Table -AutoSize
+	$instances | Sort-Object Name | Format-Table -AutoSize
 }
 
 Function Set-AwsEc2CacheFile {
@@ -435,6 +447,8 @@ Function Update-AwsEc2Cache {
 				@{Name='public-ip'; Expression={$_.PublicIpAddress}},
 				@{Name='protocol';Expression={($_.Platform -ilike '*Windows*') ? ('rdp') : ('ssh') }}
 
+	$instances = $instances | Sort-Object name
+
 	# if ($debug) {
 	# 		Write-Host
 	# 		foreach ($i in $cache.ec2.instances[$ec2.OwnerId]) {
@@ -483,7 +497,7 @@ function Connect-AwsSsmPort {
 	$account = aws configure get account
 	$region = Get-AwsRegionLocal
 	$cache = Get-AwsCache
-  $instance = $cache.ec2.instances.$account.$region | Where-Object {$_.'name' -eq $InstanceName}
+	$instance = $cache.ec2.instances.$account.$region | Where-Object {$_.'name' -eq $InstanceName}
 	$portNumber = ($instance.'protocol' -eq 'rdp') ? '3389' : '22'
 
 	$sessionParams = @{

@@ -6,7 +6,17 @@ function Invoke-Starship-PreCommand {
 		Directory = "📁"
 	}
 
-	$directory = Split-Path -Path $pwd -Leaf
+	# Send OSC escape sequences to Windows Terminal so it can track the current
+	# working directory (enables duplicate-tab-in-same-dir, path in tab tooltip, etc.)
+	$currentLocation = $executionContext.SessionState.Path.CurrentLocation;
+	$prompt = "`e]9;12`a"
+	if ($currentLocation.Provider.Name -eq "FileSystem")
+	{
+		$prompt += "`e]9;9;`"$($currentLocation.ProviderPath)`"`e\"
+	}
+	$Host.UI.Write($prompt)
+
+	$directory = Split-Path -Path $currentLocation -Leaf
 	$directoryTitle = "$($icons.Directory) $directory"
 	$title = $directoryTitle
 
