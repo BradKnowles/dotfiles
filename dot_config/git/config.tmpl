@@ -129,7 +129,7 @@
 	swc = switch --create
 	swi = !git branch | fzf --height=40% --reverse --border --prompt=\"Switch to branch: \" | xargs -r git switch
 	swir = !git branch -r | grep -v HEAD | sed \"s|origin/||\" | fzf --height=40% --reverse --border --prompt=\"Switch to remote branch: \" | xargs -r git switch
-	swm = switch main
+	swm = !git switch $(git rev-parse --abbrev-ref origin/HEAD | sed \"s/origin\\///\")
 
 	stc = !read -p \"Are you sure you want to clear all stashes? [y/N] \" confirm && [[ $confirm == \"y\" ]] && git stash clear || echo \"Operation cancelled\"
 	stl = stash list --format='%gd (%ad): %gs'
