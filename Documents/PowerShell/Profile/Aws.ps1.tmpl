@@ -446,6 +446,7 @@ Function Update-AwsEc2Cache {
 				@{Name='private-ip'; Expression={$_.PrivateIpAddress}},
 				@{Name='public-ip'; Expression={$_.PublicIpAddress}},
 				@{Name='protocol';Expression={($_.Platform -ilike '*Windows*') ? ('rdp') : ('ssh') }}
+		| Sort-Object -Property 'name'
 
 	# if ($debug) {
 	# 		Write-Host
