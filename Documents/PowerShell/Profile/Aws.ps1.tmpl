@@ -496,7 +496,7 @@ function Connect-AwsSsmPort {
 	$account = aws configure get account
 	$region = Get-AwsRegionLocal
 	$cache = Get-AwsCache
-  $instance = $cache.ec2.instances.$account.$region | Where-Object {$_.'name' -eq $InstanceName}
+	$instance = $cache.ec2.instances.$account.$region | Where-Object {$_.'name' -eq $InstanceName}
 	$portNumber = ($instance.'protocol' -eq 'rdp') ? '3389' : '22'
 
 	$sessionParams = @{
