@@ -17,6 +17,7 @@
 
 # Allow chezmoi configuration files
 !.chezmoiignore
+!/.chezmoiroot
 
 # Allow template files anywhere
 !*.tmpl
