@@ -25,12 +25,17 @@ Function Set-LocationInteractive {
 	[Alias("cdi")]
 	Param(
 			[Parameter()]
+			[int]$Depth,
 			[switch]$File,
 			[switch]$All
 	)
 
 	# Build fd command arguments
 	$fdArgs = @('--color=always')
+
+	if ($null -ne $Depth) {
+		$fdArgs += '--max-depth', $Depth
+	}
 
 	if ($File) {
 			$fdArgs += '--type', 'file'
@@ -39,6 +44,7 @@ Function Set-LocationInteractive {
 	}
 
 	if ($All) {
+			# Perform an unrestricted search, including ignored and hidden files. This is an alias for '--no-ignore --hidden'.
 			$fdArgs += '--unrestricted'
 	}
 
