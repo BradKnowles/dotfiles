@@ -22,3 +22,17 @@ $PSReadLineKeyHandler = @{
 	Function = "MenuComplete"
 }
 Set-PSReadLineKeyHandler @PSReadLineKeyHandler
+
+# Ctrl+F - fzf file search
+Set-PSReadLineKeyHandler -Chord 'Ctrl+f' -ScriptBlock {
+    $fdArgs = @('--color=always', '--type', 'file')
+    $fzfOptions = '--height=90% --reverse --border --ansi'
+
+    $Selection = & fd @fdArgs | & fzf ($fzfOptions -split ' ')
+
+    if ($null -ne $Selection) {
+        [Microsoft.PowerShell.PSConsoleReadLine]::Insert($Selection)
+    }
+
+    #[Microsoft.PowerShell.PSConsoleReadLine]::InvokePrompt()
+}

@@ -8,12 +8,15 @@
 	gpgSign = true
 
 [core]
-	autocrlf = true
+	autocrlf = false
 	whitespace = blank-at-eol,space-before-tab,blank-at-eof
+	eol = lf
+	longpaths = true
 
 [credential]
 	helper = manager
 
+	gitHubAccountFiltering = false
 [diff]
 	colormoved = zebra
 	tool = bc
@@ -145,4 +148,4 @@
 	wt = worktree
 	wtl = worktree list
 	wtr = worktree remove
-	wta = worktree add
+	wta = "!f() { root=$(git rev-parse --show-toplevel); parent=$(dirname \"$root\"); git worktree add -b \"$1\" \"$parent/$1\" ; }; f"

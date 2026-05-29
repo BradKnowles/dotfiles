@@ -3,13 +3,14 @@ temp
 /**/Misc.ps1
 
 {{- if not (has "Personal" .roles) }}
-Documents/PowerShell/Profile/Roles/Personal.ps1
-	{{- if not (has "Work" .roles) }}
+	Documents/PowerShell/Profile/Roles/Personal.ps1
+{{- end }}
+
+{{- if not (has "Work" .roles) }}
 	Documents/PowerShell/Profile/Roles/Work.ps1
 	.config/starship-work.toml
-	{{- end }}
+{{- end }}
 
-	{{- if not (has "Client" .roles) }}
+{{- if not (has "Client" .roles) }}
 	Documents/PowerShell/Profile/Roles/Client.ps1
-	{{- end }}
 {{- end }}

@@ -24,28 +24,37 @@ Function Set-LocationInteractive {
 	[CmdletBinding()]
 	[Alias("cdi")]
 	Param(
-			[Parameter()]
-			[int]$Depth,
-			[switch]$File,
-			[switch]$All
+		[Parameter()]
+		[int]$Depth = 3,
+		[switch]$File,
+		[switch]$All,
+		[switch]$Up
 	)
 
 	# Build fd command arguments
 	$fdArgs = @('--color=always')
 
-	if ($null -ne $Depth) {
+	if ($Depth -ne 0) {
 		$fdArgs += '--max-depth', $Depth
 	}
 
 	if ($File) {
-			$fdArgs += '--type', 'file'
+		$fdArgs += '--type', 'file'
 	} else {
-			$fdArgs += '--type', 'dir', '--exclude', '.git'
+		$fdArgs += '--type', 'dir', '--exclude', '.git'
 	}
 
 	if ($All) {
-			# Perform an unrestricted search, including ignored and hidden files. This is an alias for '--no-ignore --hidden'.
-			$fdArgs += '--unrestricted'
+		# Perform an unrestricted search, including ignored and hidden files. This is an alias for '--no-ignore --hidden'.
+		$fdArgs += '--unrestricted'
+	}
+
+	if ($Up) {
+		$gitRoot = git rev-parse --show-toplevel
+		$pattern = [System.IO.Path]::GetRelativePath($PWD, $gitRoot)
+
+		$fdArgs += '.'
+		$fdArgs += $pattern
 	}
 
 	# Common fzf options
@@ -55,11 +64,11 @@ Function Set-LocationInteractive {
 	$Selection = & fd @fdArgs | & fzf ($fzfOptions -split ' ')
 
 	if ($null -ne $Selection) {
-			if ($File) {
-					Set-Location (Split-Path -Path $Selection -Parent)
-			} else {
-					Set-Location $Selection
-			}
+		if ($File) {
+				Set-Location (Split-Path -Path $Selection -Parent)
+		} else {
+				Set-Location $Selection
+		}
 	}
 }
 
@@ -81,9 +90,9 @@ Function Copy-LocationToClipboard {
 
 	$ResolvedPath = Resolve-Path -Path $Path -Relative:$Relative
 	if ($Posix) {
-			$ResolvedPath = ($ResolvedPath.Path ?? $ResolvedPath).Replace('\', '/')
+		$ResolvedPath = ($ResolvedPath.Path ?? $ResolvedPath).Replace('\', '/')
 	} elseif ($WSL) {
-			$ResolvedPath = ($ResolvedPath -replace '^([A-Za-z]):\\(.*)', {"/mnt/" + $_.Groups[1].Value.ToLower() + "/" + $_.Groups[2].Value}) -replace '\\', '/'
+		$ResolvedPath = ($ResolvedPath -replace '^([A-Za-z]):\\(.*)', {"/mnt/" + $_.Groups[1].Value.ToLower() + "/" + $_.Groups[2].Value}) -replace '\\', '/'
 	}
 	Set-Clipboard -Value $ResolvedPath
 
@@ -111,19 +120,23 @@ function Show-ApprovedVerbs {
 	$verbs = Get-Verb
 
 	if ($SortByVerb) {
-			$grouped = $verbs | Sort-Object Verb | Group-Object Group
+		$grouped = $verbs | Sort-Object Verb | Group-Object Group
 	}
 	else {
-			$grouped = $verbs | Group-Object Group
+		$grouped = $verbs | Group-Object Group
 	}
 
 	foreach ($group in $grouped | Sort-Object Name) {
-			Write-Host "`n[$($group.Name)]" -ForegroundColor Cyan
+		Write-Host "`n[$($group.Name)]" -ForegroundColor Cyan
 
-			$group.Group | ForEach-Object {
-					Write-Host ("{0,-15} - {1}" -f $_.Verb, $_.Description)
-			}
+		$group.Group | ForEach-Object {
+				Write-Host ("{0,-15} - {1}" -f $_.Verb, $_.Description)
+		}
 	}
+}
+
+Function Update-PathEnvironment {
+	$Env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ';' + [System.Environment]::GetEnvironmentVariable("PATH", "User")
 }
 
 # create a $Env:USERNAME\.local\share\age\ directory with chmod 700, place appropriate age file in directory

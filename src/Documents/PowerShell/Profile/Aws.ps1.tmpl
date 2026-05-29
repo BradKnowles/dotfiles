@@ -4,7 +4,7 @@ Function Edit-AwsConfig() {
 	[Alias("eaws")]
 	Param()
 
-  code $Env:USERPROFILE\.aws
+	code $Env:USERPROFILE\.aws
 }
 
 Function Set-AwsProfile() {
@@ -20,10 +20,10 @@ Function Set-AwsProfile() {
 	# Set profile for CLI
 	$Env:AWS_PROFILE = $ProfileName
 
-	# If profile doesn't exist in .aws directory, create a placeholder
-	if ($null -eq $(Read-AwsCredentialFile)[$ProfileName]) {
-		Add-AwsProfile -ProfileName $ProfileName
-	}
+	# # If profile doesn't exist in .aws directory, create a placeholder
+	# if ($null -eq $(Read-AwsCredentialFile)[$ProfileName]) {
+	# 	Add-AwsProfile -ProfileName $ProfileName
+	# }
 
 	Write-Host "$(frt('Updated')) $(fvr('AWS_PROFILE')) $(frt('from')) $(fvl($PreviousProfile)) $(frt('to')) $(fvl($ProfileName))"
 
@@ -155,6 +155,15 @@ Function Connect-AwsAccount() {
 	}
 
 	$credentialProcess = $null;$source = $null
+
+	# 1. Check for sso. Use it if found as the rest of the script isn't designed for sso.
+	$cp = aws configure get sso_account_id
+	if ($null -ne $cp) {
+		$source = 'sso'
+		Write-Host "$(frt('Using')) $(fvr($source))"
+		aws sso login
+		return
+	}
 
 	# 1. Check for 'credential_process'
 	$cp = aws configure get credential_process
@@ -387,7 +396,7 @@ Function Get-AwsEc2Instances {
 		$instance | Add-Member -MemberType NoteProperty -Name 'Status' -Value ($statuses[$instance.InstanceId].Status ?? "N/A")
 		$instance | Add-Member -MemberType NoteProperty -Name 'SystemStatus' -Value ($statuses[$instance.InstanceId].SystemStatus ?? "N/A")
 	}
-	$instances | Sort-Object Name | Format-Table -AutoSize
+	$instances | Format-Table -AutoSize
 }
 
 Function Set-AwsEc2CacheFile {
@@ -446,7 +455,6 @@ Function Update-AwsEc2Cache {
 				@{Name='private-ip'; Expression={$_.PrivateIpAddress}},
 				@{Name='public-ip'; Expression={$_.PublicIpAddress}},
 				@{Name='protocol';Expression={($_.Platform -ilike '*Windows*') ? ('rdp') : ('ssh') }}
-		| Sort-Object -Property 'name'
 
 	# if ($debug) {
 	# 		Write-Host
@@ -638,4 +646,97 @@ Function Stop-AwsEc2Instance {
 	Stop-EC2Instance -InstanceId $instancesToStop
 		| Select-Object @{Name='CurrentState';Expression={$_.CurrentState.Name}},
 				InstanceId, @{Name='PreviousState';Expression={$_.PreviousState.Name}}
+}
+
+function Invoke-SecretRotation {
+	[CmdletBinding()]
+	param(
+			[Parameter(Mandatory)]
+			[string]$SecretId,
+			[int]$TimeoutSeconds = 60,
+			[int]$PollIntervalSeconds = 1
+	)
+
+	# Kick off rotation
+	Write-Host "🔄️ $(frt('Starting rotation for')) $(fvl($SecretId))"
+	$result = Invoke-SECSecretRotation -SecretId $SecretId
+	$newVersionId = $result.VersionId
+	Write-Host "🆕 $(frt('New version:')) $(fvl($newVersionId))"
+
+	# Poll until complete or timeout
+	$elapsed = 0
+	while ($elapsed -lt $TimeoutSeconds) {
+			Start-Sleep -Seconds $PollIntervalSeconds
+			$elapsed += $PollIntervalSeconds
+
+			$secret = Get-SECSecret -SecretId $SecretId
+			$stages = $secret.VersionIdsToStages
+
+			# Find which version has AWSCURRENT and which has AWSPENDING
+			$currentVersions = $stages.GetEnumerator() | Where-Object { $_.Value -contains 'AWSCURRENT' }
+			$pendingVersions = $stages.GetEnumerator() | Where-Object { $_.Value -contains 'AWSPENDING' }
+
+			# Success: AWSPENDING on same version as AWSCURRENT, or AWSPENDING gone entirely
+			$pendingOnCurrent = $currentVersions | Where-Object { $_.Value -contains 'AWSPENDING' }
+
+			if ($pendingOnCurrent -or -not $pendingVersions) {
+					Write-Host "✅ $(fs('Rotation completed successfully.')) $(fca("($elapsed`s)"))"
+					Write-Host "  $(fvr('AWSCURRENT')) $(frt('version:')) $(fvl($currentVersions.Key))"
+					return [PSCustomObject]@{
+							Status    = 'Success'
+							SecretId  = $SecretId
+							VersionId = $currentVersions.Key
+							Elapsed   = $elapsed
+					}
+			}
+
+			# Error: AWSPENDING exists on a different version with no secret value (empty version)
+			# This indicates the rotation Lambda failed after createSecret
+			$pendingVersion = $pendingVersions.Key
+			if ($pendingVersion -ne $newVersionId) {
+					Write-Host "⚠️ $(fvr('AWSPENDING')) $(frt('moved to unexpected version')) $(fvl($pendingVersion))"
+			}
+
+			Write-Host "  Waiting... AWSCURRENT on $($currentVersions.Key) $elapsed`s" -ForegroundColor DarkGray
+	}
+
+	# Timeout — check final state
+	Write-Host "🛑 $(fe('Timeout after')) $(fvl("$TimeoutSeconds`s"))$(fe('. Rotation may have failed.'))"
+	Write-Host "  📋 $(fe('Check rotation Lambda logs for errors.'))"
+	Write-Host "  ⛔ $(fvr('AWSPENDING')) $(fe('is still on a separate version — this blocks future rotations.'))"
+	return [PSCustomObject]@{
+			Status    = 'Timeout'
+			SecretId  = $SecretId
+			VersionId = $newVersionId
+			Elapsed   = $elapsed
+	}
+}
+
+
+function Connect-AuroraDB {
+	param(
+		[string]$Database = 'fileintake',
+		[int]$LocalPort = 5433
+	)
+
+	$region = $env:AWS_REGION ?? $env:AWS_DEFAULT_REGION
+	if (-not $region) { throw "AWS_REGION or AWS_DEFAULT_REGION not set" }
+
+	$bastion = (Get-SSMParameter -Name '/fileintake-db/local/bastion-instance-id').Value
+	$endpoint = (Get-SSMParameter -Name '/fileintake-db/local/aurora-writer-endpoint').Value
+	$secretArn = (Get-SSMParameter -Name '/fileintake-db/local/aurora-secret-admin-arn').Value
+	$creds = (Get-SECSecretValue -SecretId $secretArn).SecretString | ConvertFrom-Json
+
+	Write-Host "Starting SSM tunnel to $endpoint via $bastion on local port $LocalPort..."
+
+	$tunnel = Start-Process pwsh -ArgumentList @(
+		'-NoProfile', '-NoExit', '-Command',
+		"Start-SSMSession -Target '$bastion' -DocumentName 'AWS-StartPortForwardingSessionToRemoteHost' -Parameter @{ host = [string[]]@('$endpoint'); portNumber = [string[]]@('5432'); localPortNumber =
+[string[]]@('$LocalPort') }"
+	) -PassThru
+
+	Start-Sleep -Seconds 5
+
+	$env:PGPASSWORD = $creds.password
+	psql -h 127.0.0.1 -p $LocalPort -U $creds.username -d $Database
 }

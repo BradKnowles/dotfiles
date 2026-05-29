@@ -173,3 +173,41 @@ function Remove-LocalGitBranchesWithDeletedRemotes {
 		}
 	}
 }
+
+Function Set-LocationWorktree {
+    [CmdletBinding()]
+    [Alias("cdgw")]
+    Param()
+
+    $worktrees = git worktree list |
+        Where-Object { $_ -match '^\S+' } |
+        ForEach-Object {
+            $parts = $_ -split '\s+'
+            $path = $parts[0]
+            $branch = ($parts[2] -replace '[\[\]]', '')
+            "$branch`t$path"
+        } |
+        Where-Object { ($_ -split "`t")[1] -ne (git rev-parse --show-toplevel) }
+
+    if (-not $worktrees) {
+        Write-Warning "No other worktrees found."
+        return
+    }
+
+    $fzfArgs = @(
+        '--height=90%'
+        '--reverse'
+        '--border'
+        '--ansi'
+        '--delimiter=\t'
+        '--with-nth=1'
+        '--preview=git -C {2} log --oneline -5'
+    )
+    $Selection = $worktrees | & fzf @fzfArgs
+
+    if ($null -ne $Selection) {
+        $path = ($Selection -split "`t")[1]
+        Set-Location $path
+    }
+}
+

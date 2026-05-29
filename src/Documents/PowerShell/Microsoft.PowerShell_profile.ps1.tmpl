@@ -19,6 +19,8 @@
 
 {{ if lookPath "starship" }}. "$PSScriptRoot/Profile/StarshipConfiguration.ps1"{{ end }}
 
+. "$PSScriptRoot/Profile/ActiveDirectoryFunctions.ps1"
+
 . "$PSScriptRoot/Profile/ShellCompletions.ps1"
 {{ range $index, $element := .roles }}
 {{- $path := printf "$PSScriptRoot/Profile/Roles/%s.ps1" $element }}

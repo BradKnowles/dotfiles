@@ -43,6 +43,17 @@ Function Format-Success() {
 	"$($PSStyle.Foreground.BrightGreen)$Text$($PSStyle.Reset)"
 }
 
+Function Format-Error() {
+	[CmdletBinding()]
+	[Alias("fe")]
+	Param(
+		[string]$Text
+	)
+
+	# Actually Green
+	"$($PSStyle.Foreground.BrightRed)$Text$($PSStyle.Reset)"
+}
+
 Function Format-Cancelled() {
 	[CmdletBinding()]
 	[Alias("fca")]
