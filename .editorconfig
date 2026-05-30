@@ -19,10 +19,10 @@ max_line_length          = 120
 [*.{yaml,yaml.tmpl}]
 indent_style             = space
 
-[dot_config/git/config.tmpl]
+[src/dot_config/git/config.tmpl]
 end_of_line              = lf
 
-[AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json.tmpl]
+[src/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json.tmpl]
 trim_trailing_whitespace = false
 
 end_of_line              = lf
