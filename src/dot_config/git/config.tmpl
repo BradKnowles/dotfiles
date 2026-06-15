@@ -148,4 +148,10 @@
 	wt = worktree
 	wtl = worktree list
 	wtr = worktree remove
-	wta = "!f() { root=$(git rev-parse --show-toplevel); parent=$(dirname \"$root\"); git worktree add -b \"$1\" \"$parent/$1\" ; }; f"
+	wta = "!f() { root=$(git rev-parse --show-toplevel); parent=$(dirname \"$root\"); dir=$(echo \"$1\" | tr \"/\" \"-\"); git worktree add -b \"$1\" \"$parent/$dir\" ; }; f"
+[credential "https://github.com"]
+	helper = 
+	helper = !'C:\\Users\\Brad.Knowles\\scoop\\apps\\gh\\current\\bin\\gh.exe' auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !'C:\\Users\\Brad.Knowles\\scoop\\apps\\gh\\current\\bin\\gh.exe' auth git-credential

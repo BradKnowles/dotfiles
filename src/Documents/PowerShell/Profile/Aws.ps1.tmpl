@@ -740,3 +740,40 @@ function Connect-AuroraDB {
 	$env:PGPASSWORD = $creds.password
 	psql -h 127.0.0.1 -p $LocalPort -U $creds.username -d $Database
 }
+
+
+Function Get-AwsSsmParameter {
+	[CmdletBinding()]
+	[Alias("gssp")]
+	Param()
+
+	$parameters = (Get-SSMParameterList).Name
+
+	$fzfOptions = @('--height', '~100%',
+		'--layout', 'reverse',
+		'--ansi',
+		'--border', 'rounded',
+		'--multi',
+		'--header', "Select Parameter(s)`nTAB: Select; CTRL-A: Select all; CTRL-D: Deselect all; ESC: Abort",
+		'--header-border', 'rounded',
+		'--bind', 'ctrl-a:select-all,ctrl-d:deselect-all'
+	)
+
+	$selected = $parameters | fzf $fzfOptions
+	if (($selected | Measure-Object).Count -eq 0) {
+		Write-Host "$(frt('No parameter selected.'))"
+		return
+	}
+
+	$selected | ForEach-Object {
+		$param = Get-SSMParameter -Name $_ -WithDecryption $true
+		[PSCustomObject]@{
+			Name             = $param.Name
+			Type             = $param.Type
+			Value            = $param.Value
+			Version          = $param.Version
+			LastModifiedDate = $param.LastModifiedDate
+			ARN              = $param.ARN
+		}
+	}
+}
