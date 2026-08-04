@@ -22,7 +22,7 @@
 	tool = bc
 	wsErrorHighlight = all
 [difftool "bc"]
-	path = C:\\Program Files\\Beyond Compare 5\\BComp.exe
+	path = "C:\\Program Files\\Beyond Compare 5\\BComp.exe"
 [difftool]
 	prompt = false
 
@@ -42,8 +42,9 @@
 
 [merge]
 	tool = bc
+	guitool = bc
 [mergetool "bc"]
-	path = C:\\Program Files\\Beyond Compare 5\\BComp.exe
+	path = "C:/Program Files/Beyond Compare 5/BComp.exe"
 [mergetool]
 	keepBackup = false
 
@@ -148,10 +149,7 @@
 	wt = worktree
 	wtl = worktree list
 	wtr = worktree remove
-	wta = "!f() { root=$(git rev-parse --show-toplevel); parent=$(dirname \"$root\"); dir=$(echo \"$1\" | tr \"/\" \"-\"); git worktree add -b \"$1\" \"$parent/$dir\" ; }; f"
-[credential "https://github.com"]
-	helper = 
-	helper = !'C:\\Users\\Brad.Knowles\\scoop\\apps\\gh\\current\\bin\\gh.exe' auth git-credential
-[credential "https://gist.github.com"]
-	helper = 
-	helper = !'C:\\Users\\Brad.Knowles\\scoop\\apps\\gh\\current\\bin\\gh.exe' auth git-credential
+	wta = "!f() { root=$(git rev-parse --show-toplevel); parent=$(dirname \"$root\"); dir=$(echo \"$1\" | tr \"/\" \"-\"); if git show-ref --verify --quiet \"refs/remotes/origin/$1\"; then git worktree add --track -b \"$1\" \"$parent/$dir\" \"origin/$1\"; else git worktree add -b \"$1\" \"$parent/$dir\"; fi; }; f"
+
+[credential "helperselector"]
+	selected = manager

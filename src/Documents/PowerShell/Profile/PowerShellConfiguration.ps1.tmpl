@@ -36,3 +36,17 @@ Set-PSReadLineKeyHandler -Chord 'Ctrl+f' -ScriptBlock {
 
     #[Microsoft.PowerShell.PSConsoleReadLine]::InvokePrompt()
 }
+
+# Ctrl+D - fzf directory lookup
+Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -ScriptBlock {
+    $fdArgs = @('--color=always', '--type', 'dir')
+    $fzfOptions = '--height=90% --reverse --border --ansi'
+
+    $Selection = & fd @fdArgs | & fzf ($fzfOptions -split ' ')
+
+    if ($null -ne $Selection) {
+        [Microsoft.PowerShell.PSConsoleReadLine]::Insert($Selection)
+    }
+
+    #[Microsoft.PowerShell.PSConsoleReadLine]::InvokePrompt()
+}
