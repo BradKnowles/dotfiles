@@ -22,3 +22,27 @@ $PSReadLineKeyHandler = @{
 	Function = "MenuComplete"
 }
 Set-PSReadLineKeyHandler @PSReadLineKeyHandler
+
+Function Save-LatestPowerShell {
+	[CmdletBinding(SupportsShouldProcess)]
+	[Alias("svps")]
+	Param(
+		[string]$Destination = "$Env:USERPROFILE\Downloads"
+	)
+
+	$release = Invoke-RestMethod -Uri 'https://api.github.com/repos/PowerShell/PowerShell/releases/latest'
+	$asset = $release.assets | Where-Object { $_.name -match '^PowerShell-[\d.]+-win-x64\.msi$' } | Select-Object -First 1
+
+	if (-not $asset) {
+		Write-Error "Could not find a Windows x64 MSI asset in release $($release.tag_name)."
+		return
+	}
+
+	$outPath = Join-Path $Destination $asset.name
+
+	if ($PSCmdlet.ShouldProcess($outPath, "Download $($asset.name)")) {
+		Write-Host "Downloading $(fvl($asset.name)) → $(fvl($outPath)) ..."
+		Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $outPath
+		Write-Host (Format-Success "Done. $outPath")
+	}
+}
