@@ -11,6 +11,8 @@
 
 . "$PSScriptRoot/Profile/ShellEnhancements.ps1"
 
+. "$PSScriptRoot/Profile/ActiveDirectoryFunctions.ps1"
+
 {{ if lookPath "aws" }}. "$PSScriptRoot/Profile/Aws.ps1"{{ end }}
 
 {{ if lookPath "git" }}. "$PSScriptRoot/Profile/GitFunctions.ps1"{{ end }}

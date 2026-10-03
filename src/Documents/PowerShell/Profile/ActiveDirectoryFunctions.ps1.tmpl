@@ -20,3 +20,103 @@ function Get-AdUserPasswordExpiration {
 		Get-ADUser @AdUserProperties | Select-Object @SelectProperties
 	}
 }
+
+function Get-AdUserPasswordExpiration2 {
+	Param(
+		[Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+		[object[]]$Users,
+
+		[string]$Server
+	)
+
+	process {
+		foreach ($u in $Users) {
+			# Accept either a plain string ("bradkno") or an object with .Identity/.Server
+			if ($u -is [string]) {
+				$identity = $u
+				$srv      = if ($Server) { $Server } else { $env:USERDNSDOMAIN }
+			} else {
+				$identity = $u.Identity
+				$srv      = if ($u.Server) { $u.Server } elseif ($Server) { $Server } else { $env:USERDNSDOMAIN }
+			}
+
+			if ([string]::IsNullOrWhiteSpace($identity)) {
+				Write-Warning "Empty identity supplied; skipping."
+				continue
+			}
+
+			$filter = "(&(objectClass=user)(|(sAMAccountName=$identity)(userPrincipalName=$identity)))"
+
+			$searcher = New-Object System.DirectoryServices.DirectorySearcher
+			$searcher.SearchRoot = [ADSI]"LDAP://$srv"
+			$searcher.Filter = $filter
+			$searcher.PropertiesToLoad.AddRange(@('displayName','msDS-UserPasswordExpiryTimeComputed')) | Out-Null
+
+			$result = $searcher.FindOne()
+
+			if ($null -eq $result) {
+				Write-Warning "No user found matching identity '$identity' on server '$srv'."
+				continue
+			}
+
+			$displayName = $result.Properties['displayname'] | Select-Object -First 1
+			$expiryRaw   = $result.Properties['msds-userpasswordexpirytimecomputed'] | Select-Object -First 1
+
+			$expiryValue = [int64]$expiryRaw
+			if ($expiryValue -eq 0 -or $expiryValue -eq [int64]::MaxValue) {
+				$expiration = 'Never'
+			} else {
+				$expiration = [datetime]::FromFileTime($expiryValue)
+			}
+
+			[PSCustomObject]@{
+				'DisplayName'         = $displayName
+				'Password Expiration' = $expiration
+			}
+		}
+	}
+}
+
+function Set-MyAdPassword2 {
+	Param(
+		[string]$Identity = $env:USERNAME,
+		[string]$Server   = $env:USERDNSDOMAIN
+	)
+
+	Add-Type -AssemblyName System.DirectoryServices.AccountManagement
+
+	if ([string]::IsNullOrWhiteSpace($Server)) {
+		Write-Error "No server specified and `$env:USERDNSDOMAIN is empty (are you on a domain-joined machine?)."
+		return
+	}
+
+	# Read securely, convert to plaintext only at the moment of the API call
+	$oldSecure = Read-Host "Enter your CURRENT password" -AsSecureString
+	$newSecure = Read-Host "Enter your NEW password"     -AsSecureString
+
+	$ctx  = New-Object System.DirectoryServices.AccountManagement.PrincipalContext('Domain', $Server)
+	$user = [System.DirectoryServices.AccountManagement.UserPrincipal]::FindByIdentity($ctx, $Identity)
+
+	if ($null -eq $user) {
+		Write-Error "User '$Identity' not found on '$Server'."
+		return
+	}
+
+	$oldPlain = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR(
+		[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($oldSecure))
+	$newPlain = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR(
+		[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($newSecure))
+
+	try {
+		$user.ChangePassword($oldPlain, $newPlain)
+		Write-Host "Password changed successfully for '$Identity' on '$Server'." -ForegroundColor Green
+	}
+	catch {
+		Write-Error "Password change failed: $($_.Exception.InnerException.Message ?? $_.Exception.Message)"
+	}
+	finally {
+		# Scrub plaintext copies from memory
+		$oldPlain = $newPlain = $null
+		[System.GC]::Collect()
+	}
+}
