@@ -11,7 +11,7 @@
 #     Then run `chezmoi init` to apply changes.
 # </auto-generated>
 #-------------------------------------------------------------------------------
-#chezmoi:template:line-endings=crlf
+#chezmoi:template:line-endings=lf
 {{- $allRoles := list "Personal" "Work" "Client" "Author" -}}
 {{- $roles := promptMultichoiceOnce . "roles" "What roles will this machine perform" $allRoles -}}
 {{- $email := promptStringOnce . "git.email" "What is your email address" }}

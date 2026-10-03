@@ -8,7 +8,7 @@ charset                  = utf-8
 
 trim_trailing_whitespace = true
 
-end_of_line              = crlf
+end_of_line              = lf
 insert_final_newline     = true
 
 indent_style             = tab
@@ -19,13 +19,9 @@ max_line_length          = 120
 [*.{yaml,yaml.tmpl}]
 indent_style             = space
 
-[src/dot_config/git/config.tmpl]
-end_of_line              = lf
-
 [src/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json.tmpl]
 trim_trailing_whitespace = false
 
-end_of_line              = lf
 insert_final_newline     = false
 
 indent_style             = space
