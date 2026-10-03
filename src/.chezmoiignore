@@ -2,7 +2,7 @@ UNLICENSE
 temp
 /**/Misc.ps1
 
-{{- if not (has "Personal" .roles) }}
+{{- if and (not (has "Personal" .roles)) (not (has "Author" .roles)) }}
 Documents/PowerShell/Profile/Roles/Personal.ps1
 {{- end }}
 

@@ -12,6 +12,8 @@
 # </auto-generated>
 #-------------------------------------------------------------------------------
 #chezmoi:template:line-endings=lf
+{{- /* Author is the maintainer role: it gets every age key and every role file so changes can be made
+       across roles, but only the machine's other roles are loaded. Personal, Work and Client stay isolated. */ -}}
 {{- $allRoles := list "Personal" "Work" "Client" "Author" -}}
 {{- $roles := promptMultichoiceOnce . "roles" "What roles will this machine perform" $allRoles -}}
 {{- $email := promptStringOnce . "git.email" "What is your email address" }}
@@ -20,11 +22,14 @@
 encryption: age
 age:
   identities:
-{{- if has "Personal" $roles }}
+{{- if has "Author" $roles }}
     - ~\.local\share\age\personal.age.key
     - ~\.local\share\age\work.age.key
     - ~\.local\share\age\client.age.key
 {{- else }}
+    {{- if has "Personal" $roles }}
+    - ~\.local\share\age\personal.age.key
+    {{- end }}
     {{- if has "Work" $roles }}
     - ~\.local\share\age\work.age.key
     {{- end }}
