@@ -4,7 +4,7 @@ Function Edit-AwsConfig() {
 	[Alias("eaws")]
 	Param()
 
-  code $Env:USERPROFILE\.aws
+	code $Env:USERPROFILE\.aws
 }
 
 Function Set-AwsProfile() {
@@ -155,6 +155,15 @@ Function Connect-AwsAccount() {
 	}
 
 	$credentialProcess = $null;$source = $null
+
+	# 1. Check for sso. Use it if found as the rest of the script isn't designed for sso.
+	$cp = aws configure get sso_account_id
+	if ($null -ne $cp) {
+		$source = 'sso'
+		Write-Host "$(frt('Using')) $(fvr($source))"
+		aws sso login
+		return
+	}
 
 	# 1. Check for 'credential_process'
 	$cp = aws configure get credential_process
@@ -638,4 +647,105 @@ Function Stop-AwsEc2Instance {
 	Stop-EC2Instance -InstanceId $instancesToStop
 		| Select-Object @{Name='CurrentState';Expression={$_.CurrentState.Name}},
 				InstanceId, @{Name='PreviousState';Expression={$_.PreviousState.Name}}
+}
+
+function Invoke-SecretRotation {
+	[CmdletBinding()]
+	param(
+			[Parameter(Mandatory)]
+			[string]$SecretId,
+			[int]$TimeoutSeconds = 60,
+			[int]$PollIntervalSeconds = 1
+	)
+
+	# Kick off rotation
+	Write-Host "🔄️ $(frt('Starting rotation for')) $(fvl($SecretId))"
+	$result = Invoke-SECSecretRotation -SecretId $SecretId
+	$newVersionId = $result.VersionId
+	Write-Host "🆕 $(frt('New version:')) $(fvl($newVersionId))"
+
+	# Poll until complete or timeout
+	$elapsed = 0
+	while ($elapsed -lt $TimeoutSeconds) {
+			Start-Sleep -Seconds $PollIntervalSeconds
+			$elapsed += $PollIntervalSeconds
+
+			$secret = Get-SECSecret -SecretId $SecretId
+			$stages = $secret.VersionIdsToStages
+
+			# Find which version has AWSCURRENT and which has AWSPENDING
+			$currentVersions = $stages.GetEnumerator() | Where-Object { $_.Value -contains 'AWSCURRENT' }
+			$pendingVersions = $stages.GetEnumerator() | Where-Object { $_.Value -contains 'AWSPENDING' }
+
+			# Success: AWSPENDING on same version as AWSCURRENT, or AWSPENDING gone entirely
+			$pendingOnCurrent = $currentVersions | Where-Object { $_.Value -contains 'AWSPENDING' }
+
+			if ($pendingOnCurrent -or -not $pendingVersions) {
+					Write-Host "✅ $(fs('Rotation completed successfully.')) $(fca("($elapsed`s)"))"
+					Write-Host "  $(fvr('AWSCURRENT')) $(frt('version:')) $(fvl($currentVersions.Key))"
+					return [PSCustomObject]@{
+							Status    = 'Success'
+							SecretId  = $SecretId
+							VersionId = $currentVersions.Key
+							Elapsed   = $elapsed
+					}
+			}
+
+			# Error: AWSPENDING exists on a different version with no secret value (empty version)
+			# This indicates the rotation Lambda failed after createSecret
+			$pendingVersion = $pendingVersions.Key
+			if ($pendingVersion -ne $newVersionId) {
+					Write-Host "⚠️ $(fvr('AWSPENDING')) $(frt('moved to unexpected version')) $(fvl($pendingVersion))"
+			}
+
+			Write-Host "  Waiting... AWSCURRENT on $($currentVersions.Key) $elapsed`s" -ForegroundColor DarkGray
+	}
+
+	# Timeout — check final state
+	Write-Host "🛑 $(fe('Timeout after')) $(fvl("$TimeoutSeconds`s"))$(fe('. Rotation may have failed.'))"
+	Write-Host "  📋 $(fe('Check rotation Lambda logs for errors.'))"
+	Write-Host "  ⛔ $(fvr('AWSPENDING')) $(fe('is still on a separate version — this blocks future rotations.'))"
+	return [PSCustomObject]@{
+			Status    = 'Timeout'
+			SecretId  = $SecretId
+			VersionId = $newVersionId
+			Elapsed   = $elapsed
+	}
+}
+
+
+Function Get-AwsSsmParameter {
+	[CmdletBinding()]
+	[Alias("gssp")]
+	Param()
+
+	$parameters = (Get-SSMParameterList).Name
+
+	$fzfOptions = @('--height', '~100%',
+		'--layout', 'reverse',
+		'--ansi',
+		'--border', 'rounded',
+		'--multi',
+		'--header', "Select Parameter(s)`nTAB: Select; CTRL-A: Select all; CTRL-D: Deselect all; ESC: Abort",
+		'--header-border', 'rounded',
+		'--bind', 'ctrl-a:select-all,ctrl-d:deselect-all'
+	)
+
+	$selected = $parameters | fzf $fzfOptions
+	if (($selected | Measure-Object).Count -eq 0) {
+		Write-Host "$(frt('No parameter selected.'))"
+		return
+	}
+
+	$selected | ForEach-Object {
+		$param = Get-SSMParameter -Name $_ -WithDecryption $true
+		[PSCustomObject]@{
+			Name             = $param.Name
+			Type             = $param.Type
+			Value            = $param.Value
+			Version          = $param.Version
+			LastModifiedDate = $param.LastModifiedDate
+			ARN              = $param.ARN
+		}
+	}
 }
